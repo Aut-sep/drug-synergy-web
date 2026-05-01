@@ -1,0 +1,23 @@
+{
+  "bundle_name": "smoke_train_10_samples",
+  "source_bundle": "benchmark_factory/example_bundle",
+  "sample_count": 10,
+  "drug_count": 18,
+  "cell_count": 5,
+  "selected_sample_ids": [
+    "MK-8776|ZOLINZA",
+    "5-FU|DASATINIB",
+    "DEXAMETHASONE|MRK-003",
+    "BEZ-235|TOPOTECAN",
+    "LAPATINIB|VINORELBINE",
+    "SUNITINIB|ZOLINZA",
+    "METFORMIN|MK-5108",
+    "ERLOTINIB|GEMCITABINE",
+    "GELDANAMYCIN|MK-5108",
+    "L778123|MK-2206"
+  ],
+  "notes": [
+    "10-sample quick training bundle derived from benchmark_factory/example_bundle",
+    "Designed for Train Models smoke testing across all four model exporters"
+  ]
+}

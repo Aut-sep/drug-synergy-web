@@ -1,0 +1,50 @@
+FROM python:3.11-slim
+
+ARG CONDA_MAIN_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+ARG CONDA_R_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+ARG CONDA_CLOUD_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+ARG CONDA_SSL_VERIFY=true
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    CONDA_ROOT=/opt/conda \
+    PATH=/opt/conda/bin:$PATH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bash bzip2 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+SHELL ["/bin/bash", "-lc"]
+
+WORKDIR /tmp
+
+COPY benchmark_factory/env/miniconda.sh /tmp/miniconda.sh
+COPY benchmark_factory/env/ddi.yml /tmp/ddi.yml
+COPY benchmark_factory/env/mf.yml /tmp/mf.yml
+COPY benchmark_factory/env/mvc.yml /tmp/mvc.yml
+COPY benchmark_factory/env/mtl.yml /tmp/mtl.yml
+
+RUN bash /tmp/miniconda.sh -b -p ${CONDA_ROOT} && \
+    export PATH="${CONDA_ROOT}/bin:${CONDA_ROOT}/condabin:${PATH}" && \
+    ${CONDA_ROOT}/bin/conda config --system --set always_yes yes --set changeps1 no && \
+    ${CONDA_ROOT}/bin/conda config --system --set notify_outdated_conda false && \
+    ${CONDA_ROOT}/bin/conda config --system --set ssl_verify ${CONDA_SSL_VERIFY} && \
+    ${CONDA_ROOT}/bin/conda config --system --remove-key default_channels || true && \
+    ${CONDA_ROOT}/bin/conda config --system --add default_channels ${CONDA_R_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda config --system --add default_channels ${CONDA_MAIN_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda config --system --remove-key custom_channels || true && \
+    ${CONDA_ROOT}/bin/conda config --system --add custom_channels rdkit ${CONDA_CLOUD_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda config --system --add custom_channels pytorch ${CONDA_CLOUD_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda env create -n ddi -f /tmp/ddi.yml && \
+    ${CONDA_ROOT}/bin/conda env create -n mf -f /tmp/mf.yml && \
+    ${CONDA_ROOT}/bin/conda env create -n mvc -f /tmp/mvc.yml && \
+    ${CONDA_ROOT}/bin/conda env create -n mtl -f /tmp/mtl.yml && \
+    ${CONDA_ROOT}/bin/python -m pip install "fastapi>=0.115" "uvicorn>=0.30" "pandas>=2.2" && \
+    ${CONDA_ROOT}/bin/conda clean -afy && \
+    rm -f /tmp/miniconda.sh /tmp/ddi.yml /tmp/mf.yml /tmp/mvc.yml /tmp/mtl.yml
+
+WORKDIR /workspace/web_system_runtime
+
+EXPOSE 8011
+
+CMD ["/opt/conda/bin/python", "-m", "uvicorn", "service_runtime.training_service:app", "--app-dir", "/workspace/web_system_runtime", "--host", "0.0.0.0", "--port", "8011"]

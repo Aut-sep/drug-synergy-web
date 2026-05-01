@@ -1,0 +1,93 @@
+name: synergy_cached_runtime
+
+services:
+  gateway:
+    image: streamlit_system-gateway:latest
+    working_dir: /workspace/streamlit_system
+    ports:
+      - "8000:8000"
+    environment:
+      DUALSYN_SERVICE_URL: http://dualsyn-service:8000
+      MFSYNDCP_SERVICE_URL: http://mfsyndcp-service:8000
+      MVCASYN_SERVICE_URL: http://mvcasyn-service:8000
+      MTLSYNERGY_SERVICE_URL: http://mtlsynergy-service:8000
+      GATEWAY_DOWNSTREAM_TIMEOUT: "3600"
+      SYNERGY_TRAINED_MODEL_ROOT: /workspace/web_system_runtime/trained_model_versions
+    volumes:
+      - .:/workspace/streamlit_system
+      - .:/workspace/web_system_runtime
+      - ../benchmark_factory:/workspace/benchmark_factory
+      - ../DualSyn:/workspace/DualSyn
+      - ../MFSynDCP:/workspace/MFSynDCP
+      - ../MVCASyn:/workspace/MVCASyn
+      - ../MTLSynergy:/workspace/MTLSynergy
+      - ../benchmark_factory:/workspace/streamlit_system/workspace/benchmark_factory
+      - ../DualSyn:/workspace/streamlit_system/workspace/DualSyn
+      - ../MFSynDCP:/workspace/streamlit_system/workspace/MFSynDCP
+      - ../MVCASyn:/workspace/streamlit_system/workspace/MVCASyn
+      - ../MTLSynergy:/workspace/streamlit_system/workspace/MTLSynergy
+    depends_on:
+      - dualsyn-service
+      - mfsyndcp-service
+      - mvcasyn-service
+      - mtlsynergy-service
+
+  dualsyn-service:
+    image: streamlit_system-dualsyn-service:latest
+    working_dir: /workspace/streamlit_system
+    environment:
+      MODEL_NAME: DualSyn
+      PROJECT_ROOT: /workspace/streamlit_system/workspace/DualSyn/DualSyn
+      INFER_SCRIPT: /workspace/streamlit_system/workspace/benchmark_factory/model_inference/dualsyn_infer.py
+    volumes:
+      - .:/workspace/streamlit_system
+      - .:/workspace/web_system_runtime
+      - ../benchmark_factory:/workspace/benchmark_factory
+      - ../DualSyn:/workspace/DualSyn
+      - ../benchmark_factory:/workspace/streamlit_system/workspace/benchmark_factory
+      - ../DualSyn:/workspace/streamlit_system/workspace/DualSyn
+
+  mfsyndcp-service:
+    image: streamlit_system-mfsyndcp-service:latest
+    working_dir: /workspace/streamlit_system
+    environment:
+      MODEL_NAME: MFSynDCP
+      PROJECT_ROOT: /workspace/streamlit_system/workspace/MFSynDCP/MFSynDCP
+      INFER_SCRIPT: /workspace/streamlit_system/workspace/benchmark_factory/model_inference/mfsyndcp_infer.py
+    volumes:
+      - .:/workspace/streamlit_system
+      - .:/workspace/web_system_runtime
+      - ../benchmark_factory:/workspace/benchmark_factory
+      - ../MFSynDCP:/workspace/MFSynDCP
+      - ../benchmark_factory:/workspace/streamlit_system/workspace/benchmark_factory
+      - ../MFSynDCP:/workspace/streamlit_system/workspace/MFSynDCP
+
+  mvcasyn-service:
+    image: streamlit_system-mvcasyn-service:latest
+    working_dir: /workspace/streamlit_system
+    environment:
+      MODEL_NAME: MVCASyn
+      PROJECT_ROOT: /workspace/streamlit_system/workspace/MVCASyn
+      INFER_SCRIPT: /workspace/streamlit_system/workspace/benchmark_factory/model_inference/mvcasyn_infer.py
+    volumes:
+      - .:/workspace/streamlit_system
+      - .:/workspace/web_system_runtime
+      - ../benchmark_factory:/workspace/benchmark_factory
+      - ../MVCASyn:/workspace/MVCASyn
+      - ../benchmark_factory:/workspace/streamlit_system/workspace/benchmark_factory
+      - ../MVCASyn:/workspace/streamlit_system/workspace/MVCASyn
+
+  mtlsynergy-service:
+    image: streamlit_system-mtlsynergy-service:latest
+    working_dir: /workspace/streamlit_system
+    environment:
+      MODEL_NAME: MTLSynergy
+      PROJECT_ROOT: /workspace/streamlit_system/workspace/MTLSynergy
+      INFER_SCRIPT: /workspace/streamlit_system/workspace/benchmark_factory/model_inference/mtlsynergy_infer.py
+    volumes:
+      - .:/workspace/streamlit_system
+      - .:/workspace/web_system_runtime
+      - ../benchmark_factory:/workspace/benchmark_factory
+      - ../MTLSynergy:/workspace/MTLSynergy
+      - ../benchmark_factory:/workspace/streamlit_system/workspace/benchmark_factory
+      - ../MTLSynergy:/workspace/streamlit_system/workspace/MTLSynergy

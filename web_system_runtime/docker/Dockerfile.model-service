@@ -1,0 +1,46 @@
+FROM python:3.11-slim
+
+ARG ENV_FILE
+ARG ENV_NAME
+ARG CONDA_MAIN_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
+ARG CONDA_R_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
+ARG CONDA_CLOUD_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
+ARG CONDA_SSL_VERIFY=true
+
+ENV PYTHONUNBUFFERED=1 \
+    MODEL_ENV_NAME=${ENV_NAME} \
+    CONDA_ROOT=/opt/conda \
+    PATH=/opt/conda/bin:$PATH
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bash bzip2 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+SHELL ["/bin/bash", "-lc"]
+
+WORKDIR /tmp
+
+COPY benchmark_factory/env/miniconda.sh /tmp/miniconda.sh
+COPY ${ENV_FILE} /tmp/model-env.yml
+
+RUN bash /tmp/miniconda.sh -b -p ${CONDA_ROOT} && \
+    export PATH="${CONDA_ROOT}/bin:${CONDA_ROOT}/condabin:${PATH}" && \
+    ${CONDA_ROOT}/bin/conda config --system --set always_yes yes --set changeps1 no && \
+    ${CONDA_ROOT}/bin/conda config --system --set notify_outdated_conda false && \
+    ${CONDA_ROOT}/bin/conda config --system --set ssl_verify ${CONDA_SSL_VERIFY} && \
+    ${CONDA_ROOT}/bin/conda config --system --remove-key default_channels || true && \
+    ${CONDA_ROOT}/bin/conda config --system --add default_channels ${CONDA_R_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda config --system --add default_channels ${CONDA_MAIN_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda config --system --remove-key custom_channels || true && \
+    ${CONDA_ROOT}/bin/conda config --system --add custom_channels rdkit ${CONDA_CLOUD_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda config --system --add custom_channels pytorch ${CONDA_CLOUD_CHANNEL} && \
+    ${CONDA_ROOT}/bin/conda env create -n ${MODEL_ENV_NAME} -f /tmp/model-env.yml && \
+    ${CONDA_ROOT}/bin/conda run -n ${MODEL_ENV_NAME} python -m pip install "fastapi==0.103.2" "uvicorn==0.22.0" "requests==2.31.0" "psutil>=5.9" && \
+    ${CONDA_ROOT}/bin/conda clean -afy && \
+    rm -f /tmp/miniconda.sh /tmp/model-env.yml
+
+WORKDIR /workspace/web_system_runtime
+
+EXPOSE 8000
+
+CMD ["bash", "-lc", "conda run -n \"$MODEL_ENV_NAME\" uvicorn service_runtime.model_service:app --app-dir /workspace/web_system_runtime --host 0.0.0.0 --port 8000"]

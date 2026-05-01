@@ -1,0 +1,179 @@
+name: synergy_web_system
+
+services:
+  gateway:
+    image: web-system-runtime-gateway:latest
+    build:
+      context: .
+      dockerfile: web_system_runtime/docker/Dockerfile.gateway
+    working_dir: /workspace/web_system_runtime
+    ports:
+      - "8000:8000"
+    environment:
+      DUALSYN_SERVICE_URL: http://dualsyn-service:8000
+      MFSYNDCP_SERVICE_URL: http://mfsyndcp-service:8000
+      MVCASYN_SERVICE_URL: http://mvcasyn-service:8000
+      MTLSYNERGY_SERVICE_URL: http://mtlsynergy-service:8000
+      GATEWAY_DOWNSTREAM_TIMEOUT: "3600"
+      SYNERGY_TRAINED_MODEL_ROOT: /workspace/web_system_runtime/trained_model_versions
+      SYNERGY_WORKSPACE_ROOT: /workspace/repo
+    volumes:
+      - ./web_system_runtime:/workspace/web_system_runtime
+      - ./benchmark_factory:/workspace/repo/benchmark_factory
+      - ./DualSyn:/workspace/repo/DualSyn
+      - ./MFSynDCP:/workspace/repo/MFSynDCP
+      - ./MVCASyn:/workspace/repo/MVCASyn
+      - ./MTLSynergy:/workspace/repo/MTLSynergy
+    depends_on:
+      - dualsyn-service
+      - mfsyndcp-service
+      - mvcasyn-service
+      - mtlsynergy-service
+    restart: unless-stopped
+
+  training-service:
+    image: web-system-runtime-training-service:latest
+    build:
+      context: .
+      dockerfile: web_system_runtime/docker/Dockerfile.training-service
+    working_dir: /workspace/web_system_runtime
+    ports:
+      - "8011:8011"
+    environment:
+      SYNERGY_REPO_ROOT: /workspace/repo
+      SYNERGY_RUNTIME_ROOT: /workspace/web_system_runtime
+      SYNERGY_WORKSPACE_ROOT: /workspace/repo
+      SYNERGY_RUNTIME_MOUNT_ROOT: /workspace/web_system_runtime
+      SYNERGY_TRAINED_MODEL_ROOT: /workspace/web_system_runtime/trained_model_versions
+      SYNERGY_TRAINING_WORK_ROOT: /workspace/web_system_runtime/runtime_logs/training_work
+      SYNERGY_CONDA_EXE: /opt/conda/bin/conda
+      DUALSYN_TRAIN_ENV: ddi
+      MFSYNDCP_TRAIN_ENV: mf
+      MVCASYN_TRAIN_ENV: mvc
+      MTLSYNERGY_TRAIN_ENV: mtl
+    volumes:
+      - ./web_system_runtime:/workspace/web_system_runtime
+      - ./benchmark_factory:/workspace/repo/benchmark_factory
+      - ./DualSyn:/workspace/repo/DualSyn
+      - ./MFSynDCP:/workspace/repo/MFSynDCP
+      - ./MVCASyn:/workspace/repo/MVCASyn
+      - ./MTLSynergy:/workspace/repo/MTLSynergy
+    restart: unless-stopped
+
+  dualsyn-service:
+    image: web-system-runtime-dualsyn-service:latest
+    build:
+      context: .
+      dockerfile: web_system_runtime/docker/Dockerfile.model-service
+      args:
+        ENV_FILE: benchmark_factory/env/ddi_infer.yml
+        ENV_NAME: ddi_infer
+    working_dir: /workspace/web_system_runtime
+    environment:
+      MODEL_NAME: DualSyn
+      PROJECT_ROOT: /workspace/repo/DualSyn/DualSyn
+      INFER_SCRIPT: /workspace/repo/benchmark_factory/model_inference/dualsyn_infer.py
+    volumes:
+      - ./web_system_runtime:/workspace/web_system_runtime
+      - ./benchmark_factory:/workspace/repo/benchmark_factory
+      - ./DualSyn:/workspace/repo/DualSyn
+    restart: unless-stopped
+
+  mfsyndcp-service:
+    image: web-system-runtime-mfsyndcp-service:latest
+    build:
+      context: .
+      dockerfile: web_system_runtime/docker/Dockerfile.model-service
+      args:
+        ENV_FILE: benchmark_factory/env/mf_infer.yml
+        ENV_NAME: mf_infer
+    working_dir: /workspace/web_system_runtime
+    environment:
+      MODEL_NAME: MFSynDCP
+      PROJECT_ROOT: /workspace/repo/MFSynDCP/MFSynDCP
+      INFER_SCRIPT: /workspace/repo/benchmark_factory/model_inference/mfsyndcp_infer.py
+    volumes:
+      - ./web_system_runtime:/workspace/web_system_runtime
+      - ./benchmark_factory:/workspace/repo/benchmark_factory
+      - ./MFSynDCP:/workspace/repo/MFSynDCP
+    restart: unless-stopped
+
+  mvcasyn-service:
+    image: web-system-runtime-mvcasyn-service:latest
+    build:
+      context: .
+      dockerfile: web_system_runtime/docker/Dockerfile.model-service
+      args:
+        ENV_FILE: benchmark_factory/env/mvc_infer.yml
+        ENV_NAME: mvc_infer
+    working_dir: /workspace/web_system_runtime
+    environment:
+      MODEL_NAME: MVCASyn
+      PROJECT_ROOT: /workspace/repo/MVCASyn
+      INFER_SCRIPT: /workspace/repo/benchmark_factory/model_inference/mvcasyn_infer.py
+    volumes:
+      - ./web_system_runtime:/workspace/web_system_runtime
+      - ./benchmark_factory:/workspace/repo/benchmark_factory
+      - ./MVCASyn:/workspace/repo/MVCASyn
+    restart: unless-stopped
+
+  mtlsynergy-service:
+    image: web-system-runtime-mtlsynergy-service:latest
+    build:
+      context: .
+      dockerfile: web_system_runtime/docker/Dockerfile.model-service
+      args:
+        ENV_FILE: benchmark_factory/env/mtl_infer.yml
+        ENV_NAME: mtl_infer
+    working_dir: /workspace/web_system_runtime
+    environment:
+      MODEL_NAME: MTLSynergy
+      PROJECT_ROOT: /workspace/repo/MTLSynergy
+      INFER_SCRIPT: /workspace/repo/benchmark_factory/model_inference/mtlsynergy_infer.py
+    volumes:
+      - ./web_system_runtime:/workspace/web_system_runtime
+      - ./benchmark_factory:/workspace/repo/benchmark_factory
+      - ./MTLSynergy:/workspace/repo/MTLSynergy
+    restart: unless-stopped
+
+  web-backend:
+    image: synergy-web-backend:latest
+    build:
+      context: ./web_system_backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    ports:
+      - "9000:9000"
+    environment:
+      WEB_SYSTEM_DATABASE_URL: sqlite:////app/data/web_system.db
+      WEB_SYSTEM_RUNTIME_ROOT: /workspace/web_system_runtime
+      WEB_SYSTEM_WORKSPACE_ROOT: /workspace/repo
+      WEB_SYSTEM_GATEWAY_URL: http://gateway:8000
+      WEB_SYSTEM_TRAINING_URL: http://training-service:8011
+      WEB_SYSTEM_GATEWAY_RUNTIME_ROOT: /workspace/web_system_runtime
+    volumes:
+      - ./web_system_backend/data:/app/data
+      - ./web_system_backend/outputs:/app/outputs
+      - ./web_system_runtime:/workspace/web_system_runtime
+      - ./benchmark_factory:/workspace/repo/benchmark_factory
+      - ./DualSyn:/workspace/repo/DualSyn
+      - ./MFSynDCP:/workspace/repo/MFSynDCP
+      - ./MVCASyn:/workspace/repo/MVCASyn
+      - ./MTLSynergy:/workspace/repo/MTLSynergy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - gateway
+      - training-service
+    restart: unless-stopped
+
+  web-frontend:
+    image: synergy-web-frontend:latest
+    build:
+      context: ./web_system_frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - web-backend
+    restart: unless-stopped
