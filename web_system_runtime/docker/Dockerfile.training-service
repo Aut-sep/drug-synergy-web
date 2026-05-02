@@ -27,22 +27,26 @@ COPY benchmark_factory/env/mtl.yml /tmp/mtl.yml
 
 RUN bash /tmp/miniconda.sh -b -p ${CONDA_ROOT} && \
     export PATH="${CONDA_ROOT}/bin:${CONDA_ROOT}/condabin:${PATH}" && \
-    ${CONDA_ROOT}/bin/conda config --system --set always_yes yes --set changeps1 no && \
-    ${CONDA_ROOT}/bin/conda config --system --set notify_outdated_conda false && \
-    ${CONDA_ROOT}/bin/conda config --system --set ssl_verify ${CONDA_SSL_VERIFY} && \
-    ${CONDA_ROOT}/bin/conda config --system --remove-key default_channels || true && \
-    ${CONDA_ROOT}/bin/conda config --system --add default_channels ${CONDA_R_CHANNEL} && \
-    ${CONDA_ROOT}/bin/conda config --system --add default_channels ${CONDA_MAIN_CHANNEL} && \
-    ${CONDA_ROOT}/bin/conda config --system --remove-key custom_channels || true && \
-    ${CONDA_ROOT}/bin/conda config --system --add custom_channels rdkit ${CONDA_CLOUD_CHANNEL} && \
-    ${CONDA_ROOT}/bin/conda config --system --add custom_channels pytorch ${CONDA_CLOUD_CHANNEL} && \
+    printf '%s\n' \
+      "always_yes: true" \
+      "changeps1: false" \
+      "notify_outdated_conda: false" \
+      "ssl_verify: ${CONDA_SSL_VERIFY}" \
+      "default_channels:" \
+      "  - ${CONDA_R_CHANNEL}" \
+      "  - ${CONDA_MAIN_CHANNEL}" \
+      "custom_channels:" \
+      "  rdkit: ${CONDA_CLOUD_CHANNEL}" \
+      "  pytorch: ${CONDA_CLOUD_CHANNEL}" \
+      > /root/.condarc && \
+    ${CONDA_ROOT}/bin/conda config --show-sources && \
     ${CONDA_ROOT}/bin/conda env create -n ddi -f /tmp/ddi.yml && \
     ${CONDA_ROOT}/bin/conda env create -n mf -f /tmp/mf.yml && \
     ${CONDA_ROOT}/bin/conda env create -n mvc -f /tmp/mvc.yml && \
     ${CONDA_ROOT}/bin/conda env create -n mtl -f /tmp/mtl.yml && \
     ${CONDA_ROOT}/bin/python -m pip install "fastapi>=0.115" "uvicorn>=0.30" "pandas>=2.2" && \
     ${CONDA_ROOT}/bin/conda clean -afy && \
-    rm -f /tmp/miniconda.sh /tmp/ddi.yml /tmp/mf.yml /tmp/mvc.yml /tmp/mtl.yml
+    rm -f /tmp/miniconda.sh /tmp/ddi.yml /tmp/mf.yml /tmp/mvc.yml /tmp/mtl.yml /root/.condarc
 
 WORKDIR /workspace/web_system_runtime
 
