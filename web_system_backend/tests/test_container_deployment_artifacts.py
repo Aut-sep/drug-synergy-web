@@ -13,6 +13,7 @@ class ContainerDeploymentArtifactTests(unittest.TestCase):
         backend_dockerfile = REPO_ROOT / "web_system_backend" / "Dockerfile"
         frontend_dockerfile = REPO_ROOT / "web_system_frontend" / "Dockerfile"
         training_dockerfile = REPO_ROOT / "web_system_runtime" / "docker" / "Dockerfile.training-service"
+        model_service_dockerfile = REPO_ROOT / "web_system_runtime" / "docker" / "Dockerfile.model-service"
         nginx_conf = REPO_ROOT / "web_system_frontend" / "nginx.conf"
         docker_start_script = REPO_ROOT / "scripts" / "start_web_system_docker.ps1"
         root_windows_start = REPO_ROOT / "start.bat"
@@ -22,6 +23,7 @@ class ContainerDeploymentArtifactTests(unittest.TestCase):
         self.assertTrue(backend_dockerfile.exists(), "backend Dockerfile should exist")
         self.assertTrue(frontend_dockerfile.exists(), "frontend Dockerfile should exist")
         self.assertTrue(training_dockerfile.exists(), "training service Dockerfile should exist")
+        self.assertTrue(model_service_dockerfile.exists(), "model service Dockerfile should exist")
         self.assertTrue(nginx_conf.exists(), "frontend nginx config should exist")
         self.assertTrue(docker_start_script.exists(), "docker startup script should exist")
         self.assertTrue(root_windows_start.exists(), "repository root Windows startup script should exist")
@@ -30,6 +32,7 @@ class ContainerDeploymentArtifactTests(unittest.TestCase):
         compose_text = compose_path.read_text(encoding="utf-8")
         backend_text = backend_dockerfile.read_text(encoding="utf-8")
         frontend_text = frontend_dockerfile.read_text(encoding="utf-8")
+        model_service_text = model_service_dockerfile.read_text(encoding="utf-8")
         nginx_text = nginx_conf.read_text(encoding="utf-8")
         docker_start_script_text = docker_start_script.read_text(encoding="utf-8")
         root_windows_start_text = root_windows_start.read_text(encoding="utf-8")
@@ -66,6 +69,9 @@ class ContainerDeploymentArtifactTests(unittest.TestCase):
         self.assertNotIn("streamlit_system", compose_text)
         self.assertIn("uvicorn", backend_text)
         self.assertIn("npm run build", frontend_text)
+        self.assertIn('"fastapi==0.115.14"', model_service_text)
+        self.assertNotIn('conda run -n ${MODEL_ENV_NAME} python -m pip install', model_service_text)
+        self.assertNotIn('conda run -n "$MODEL_ENV_NAME" uvicorn', model_service_text)
         self.assertIn("proxy_pass http://web-backend:9000", nginx_text)
         self.assertIn("docker compose", docker_start_script_text)
         self.assertIn("docker-compose.web.yml", docker_start_script_text)

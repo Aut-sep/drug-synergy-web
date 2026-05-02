@@ -9,6 +9,7 @@ ARG CONDA_CLOUD_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
 ARG CONDA_SSL_VERIFY=true
 
 ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
     MODEL_ENV_NAME=${ENV_NAME} \
     CONDA_ROOT=/opt/conda \
     PATH=/opt/conda/bin:$PATH
@@ -16,6 +17,14 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && \
     apt-get install -y --no-install-recommends bash bzip2 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
+
+RUN pip install \
+    "fastapi==0.115.14" \
+    "pydantic==2.10.6" \
+    "starlette==0.46.2" \
+    "uvicorn==0.34.2" \
+    "pandas==2.2.3" \
+    "psutil==7.0.0"
 
 SHELL ["/bin/bash", "-lc"]
 
@@ -40,7 +49,6 @@ RUN bash /tmp/miniconda.sh -b -p ${CONDA_ROOT} && \
       > /root/.condarc && \
     ${CONDA_ROOT}/bin/conda config --show-sources && \
     ${CONDA_ROOT}/bin/conda env create -n ${MODEL_ENV_NAME} -f /tmp/model-env.yml && \
-    ${CONDA_ROOT}/bin/conda run -n ${MODEL_ENV_NAME} python -m pip install "fastapi==0.103.2" "uvicorn==0.22.0" "requests==2.31.0" "psutil>=5.9" && \
     ${CONDA_ROOT}/bin/conda clean -afy && \
     rm -f /tmp/miniconda.sh /tmp/model-env.yml /root/.condarc
 
@@ -48,4 +56,4 @@ WORKDIR /workspace/web_system_runtime
 
 EXPOSE 8000
 
-CMD ["bash", "-lc", "conda run -n \"$MODEL_ENV_NAME\" uvicorn service_runtime.model_service:app --app-dir /workspace/web_system_runtime --host 0.0.0.0 --port 8000"]
+CMD ["uvicorn", "service_runtime.model_service:app", "--app-dir", "/workspace/web_system_runtime", "--host", "0.0.0.0", "--port", "8000"]

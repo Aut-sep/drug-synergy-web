@@ -19,6 +19,8 @@ from shared.resource_monitor import ProcessResourceMonitor
 MODEL_NAME = os.environ.get("MODEL_NAME", "unknown")
 PROJECT_ROOT = Path(os.environ.get("PROJECT_ROOT", "")).resolve() if os.environ.get("PROJECT_ROOT") else Path()
 INFER_SCRIPT = Path(os.environ.get("INFER_SCRIPT", "")).resolve() if os.environ.get("INFER_SCRIPT") else Path()
+MODEL_ENV_NAME = os.environ.get("MODEL_ENV_NAME", "").strip()
+CONDA_EXE = os.environ.get("SYNERGY_CONDA_EXE", "/opt/conda/bin/conda").strip()
 
 
 class PredictRequest(BaseModel):
@@ -116,9 +118,11 @@ def health() -> Dict[str, object]:
         "infer_script": str(INFER_SCRIPT),
         "infer_script_exists": INFER_SCRIPT.exists(),
         "python_executable": sys.executable,
+        "model_env_name": MODEL_ENV_NAME,
+        "conda_exe": CONDA_EXE,
         "active_pid": active_pid,
         "active_run_id": active_run_id,
-        "ready": PROJECT_ROOT.exists() and INFER_SCRIPT.exists(),
+        "ready": PROJECT_ROOT.exists() and INFER_SCRIPT.exists() and bool(MODEL_ENV_NAME),
     }
 
 
@@ -133,11 +137,17 @@ def predict(request: PredictRequest) -> Dict[str, object]:
         raise HTTPException(status_code=500, detail=f"Inference script does not exist: {INFER_SCRIPT}")
     if not samples_csv.exists():
         raise HTTPException(status_code=400, detail=f"Samples CSV does not exist: {samples_csv}")
+    if not MODEL_ENV_NAME:
+        raise HTTPException(status_code=500, detail="MODEL_ENV_NAME is not configured for the inference service")
 
     runtime_dir = Path(tempfile.mkdtemp(prefix=f"{MODEL_NAME.lower()}_service_"))
     temp_output_csv = runtime_dir / "predictions.csv"
     command = [
-        sys.executable,
+        CONDA_EXE,
+        "run",
+        "-n",
+        MODEL_ENV_NAME,
+        "python",
         str(INFER_SCRIPT),
         "--project-root",
         str(PROJECT_ROOT),
