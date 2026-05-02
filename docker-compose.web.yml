@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: web_system_runtime/docker/Dockerfile.gateway
+      args:
+        PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
     working_dir: /workspace/web_system_runtime
     ports:
       - "8000:8000"
@@ -36,6 +38,8 @@ services:
     build:
       context: .
       dockerfile: web_system_runtime/docker/Dockerfile.training-service
+      args:
+        PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
     working_dir: /workspace/web_system_runtime
     ports:
       - "8011:8011"
@@ -66,6 +70,7 @@ services:
       context: .
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
+        PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
         ENV_FILE: benchmark_factory/env/ddi_infer.yml
         ENV_NAME: ddi_infer
     working_dir: /workspace/web_system_runtime
@@ -85,6 +90,7 @@ services:
       context: .
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
+        PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
         ENV_FILE: benchmark_factory/env/mf_infer.yml
         ENV_NAME: mf_infer
     working_dir: /workspace/web_system_runtime
@@ -104,6 +110,7 @@ services:
       context: .
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
+        PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
         ENV_FILE: benchmark_factory/env/mvc_infer.yml
         ENV_NAME: mvc_infer
     working_dir: /workspace/web_system_runtime
@@ -123,6 +130,7 @@ services:
       context: .
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
+        PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
         ENV_FILE: benchmark_factory/env/mtl_infer.yml
         ENV_NAME: mtl_infer
     working_dir: /workspace/web_system_runtime
@@ -141,6 +149,8 @@ services:
     build:
       context: ./web_system_backend
       dockerfile: Dockerfile
+      args:
+        PYTHON_312_IMAGE: ${PYTHON_312_IMAGE:-python:3.12-slim}
     working_dir: /app
     ports:
       - "9000:9000"
@@ -172,6 +182,9 @@ services:
     build:
       context: ./web_system_frontend
       dockerfile: Dockerfile
+      args:
+        NODE_22_IMAGE: ${NODE_22_IMAGE:-node:22-alpine}
+        NGINX_ALPINE_IMAGE: ${NGINX_ALPINE_IMAGE:-nginx:1.27-alpine}
     ports:
       - "5173:80"
     depends_on:

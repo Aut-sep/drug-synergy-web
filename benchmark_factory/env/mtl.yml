@@ -1,0 +1,26 @@
+# GPU-focused WSL environment for MTLSynergy.
+# This follows the official MTLSynergy README closely:
+#   python 3.7 + cuda 10.2 + pytorch 1.8.1 + scikit-learn 1.0.2 + pandas 1.3.5
+# This file keeps only the packages needed to train and evaluate the model.
+# Create with:
+#   conda env create -f benchmark_factory/env/mtl.yml
+# If your ~/.condarc contains old or extra channels such as conda-forge or pkgs/free,
+# create this environment from a clean HOME, for example:
+#   mkdir -p /tmp/mtl_empty_home
+#   HOME=/tmp/mtl_empty_home /home/$USER/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+#   HOME=/tmp/mtl_empty_home /home/$USER/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+#   HOME=/tmp/mtl_empty_home /home/$USER/miniconda3/bin/conda env create -f benchmark_factory/env/mtl.yml
+
+name: mtl
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.7
+  - pip=22.3.1
+  - cudatoolkit=10.2
+  - pytorch=1.8.1
+  - numpy=1.19.2
+  - pandas=1.3.5
+  - scipy=1.7.3
+  - scikit-learn=1.0.2

@@ -1,0 +1,42 @@
+{
+  "cell_count": 5,
+  "dataset_name": "example_bundle",
+  "description": "Real-dimension smoke-test bundle for all four projects.",
+  "drug_count": 26,
+  "feature_dimensions": {
+    "cell_dualsyn": 954,
+    "cell_mtlsynergy": 5000,
+    "cell_mvc_cn": 3895,
+    "cell_mvc_exp": 4004,
+    "drug_mtlsynergy": 1213
+  },
+  "notes": [
+    "sample_id is normalized to the unordered drug pair so sample_group and pair_group smoke splits stay aligned",
+    "only real source rows are used, so the smoke bundle keeps the original feature dimensions",
+    "selected samples keep clear class separation for both benchmark threshold 10 and MTLSynergy threshold 30"
+  ],
+  "sample_count": 20,
+  "source_bundle": "D:\\codex\\bishe_base\\benchmark_factory\\input_bundles\\oneil_intersection_38drug_29cell",
+  "source_sample_ids": [
+    "oneil_14550",
+    "oneil_07001",
+    "oneil_07408",
+    "oneil_07446",
+    "oneil_01636",
+    "oneil_14526",
+    "oneil_01702",
+    "oneil_06411",
+    "oneil_01713",
+    "oneil_14188",
+    "oneil_01518",
+    "oneil_01707",
+    "oneil_01338",
+    "oneil_11038",
+    "oneil_11016",
+    "oneil_07442",
+    "oneil_14182",
+    "oneil_10715",
+    "oneil_07400",
+    "oneil_14523"
+  ]
+}

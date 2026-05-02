@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Generated packages
+github_upload/
+
+# Local tooling
+.claude/
+.playwright-cli/
+
+# Archived history
+_archive/
+
+# Data
+data/
+outputs/
+uploads/
+runtime_logs/
+
+# Frontend build artifacts
+web_system_frontend/node_modules/
+web_system_frontend/dist/
+web_system_frontend/output/
+web_system_frontend/runtime_logs/
+
+# Backend local artifacts
+web_system_backend/data/*.db
+web_system_backend/outputs/
+web_system_backend/runtime_logs/
+
+# Runtime local artifacts
+web_system_runtime/outputs/
+web_system_runtime/runtime_logs/
+web_system_runtime/trained_model_versions/
+web_system_runtime/user_bundles/
+web_system_runtime/workspace/
+
+# Benchmark factory generated content
+benchmark_factory/exports/
+benchmark_factory/result_summary/
+benchmark_factory/__pycache__/
+benchmark_factory/paper_notes/
+benchmark_factory/ref_paper/
+!benchmark_factory/env/
+!benchmark_factory/env/*.yml
+!benchmark_factory/env/README_中文.md
+benchmark_factory/env/miniconda.sh
+benchmark_factory/env/Miniconda3-latest-Linux-x86_64.sh
+benchmark_factory/env/Miniconda3-latest-Linux-x86_64.sh.1
+
+# Model artifacts kept outside GitHub source package
+DualSyn/DualSyn/save_model/
+DualSyn/DualSyn/result/
+DualSyn/DualSyn/data/processed/
+MFSynDCP/MFSynDCP/result/
+MVCASyn/results/model/
+MVCASyn/results/score/
+MTLSynergy/save/
+MTLSynergy/result/

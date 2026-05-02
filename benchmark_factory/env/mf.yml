@@ -1,0 +1,37 @@
+# GPU-focused WSL environment for MFSynDCP.
+# The upstream MFSynDCP README does not publish a pinned environment,
+# so this file is a minimal GPU stack inferred from the code imports:
+#   python 3.7 + pytorch 1.9.0 + cudatoolkit 10.2 + torch-geometric 2.0.3
+# plus rdkit / pandas / scipy / scikit-learn / networkx required by preprocessing.
+# Create with:
+#   conda env create -f benchmark_factory/env/mf.yml
+# If your ~/.condarc contains old or extra channels such as conda-forge or pkgs/free,
+# create this environment from a clean HOME, for example:
+#   mkdir -p /tmp/mf_empty_home
+#   HOME=/tmp/mf_empty_home /home/$USER/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+#   HOME=/tmp/mf_empty_home /home/$USER/miniconda3/bin/conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+#   HOME=/tmp/mf_empty_home /home/$USER/miniconda3/bin/conda env create -f benchmark_factory/env/mf.yml
+# The PyG extension wheels below are pinned to torch 1.9.0 + cu102 for linux_x86_64.
+
+name: mf
+channels:
+  - pytorch
+  - rdkit
+  - defaults
+dependencies:
+  - python=3.7
+  - pip=22.3.1
+  - cudatoolkit=10.2
+  - pytorch=1.9.0
+  - rdkit=2020.09.1.0
+  - numpy=1.19.2
+  - pandas=1.3.5
+  - scipy=1.7.3
+  - scikit-learn=1.0.2
+  - networkx=2.6.3
+  - pip:
+      - https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_scatter-2.0.9-cp37-cp37m-linux_x86_64.whl
+      - https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_sparse-0.6.12-cp37-cp37m-linux_x86_64.whl
+      - https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_cluster-1.5.9-cp37-cp37m-linux_x86_64.whl
+      - https://data.pyg.org/whl/torch-1.9.0%2Bcu102/torch_spline_conv-1.2.1-cp37-cp37m-linux_x86_64.whl
+      - torch-geometric==2.0.3

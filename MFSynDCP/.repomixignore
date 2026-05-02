@@ -1,0 +1,13 @@
+# 忽略所有原始的大 CSV 文件
+*.csv
+
+# 明确保留所有样本文件
+!*_sample.csv
+
+# 忽略不必要的文件
+prepare_csv_samples.py
+data/prepare_csv_samples.py
+__pycache__/
+.venv/
+venv/
+*.pyc

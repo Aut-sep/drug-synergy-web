@@ -1,0 +1,25 @@
+{
+  "cell_count": 29,
+  "class_distribution": {},
+  "dataset_name": "oneil_intersection_38drug_29cell",
+  "description": "Four-model O'Neil intersection bundle in canonical benchmark_factory input format.",
+  "drug_aliases": {
+    "Carboplatinum": "CARBOPLATIN"
+  },
+  "drug_count": 38,
+  "label_policy": "raw",
+  "mvc_cell_aliases": {
+    "NIHOVCAR3": "OVCAR3"
+  },
+  "notes": [
+    "Drug names are normalized so Carboplatinum is exported as CARBOPLATIN.",
+    "MVCASyn cell names are normalized so NIHOVCAR3 is exported as OVCAR3.",
+    "This bundle keeps only samples whose drugs and cells are available across all four model input systems.",
+    "The shared 954-d cell matrix is exported from DualSyn/cell_features_954.csv to avoid the suspicious NCIH23 row found in local MFSynDCP/cell_features.csv.",
+    "MTLSynergy drug metadata/features are taken from the actual O'Neil-used row when a normalized drug name has multiple aliases."
+  ],
+  "sample_count": 16907,
+  "source_cell_lookup": "MTLSynergy/data/cell_lines.csv",
+  "source_drug_lookup": "MTLSynergy/data/drugs.csv",
+  "source_summary": "MTLSynergy/data/oneil_summary_idx_original_backup.csv"
+}

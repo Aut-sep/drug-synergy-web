@@ -1,0 +1,28 @@
+{
+  "all_unordered_pair_count": 703,
+  "cell_count": 29,
+  "dataset_name": "system_showcase_unseen_pair_inference",
+  "demo_group": "unseen_drug_pair_known_cell",
+  "description": "Inference-only showcase bundle built from novel drug-pair candidates over the 38-drug x 29-cell shared space.",
+  "drug_count": 38,
+  "mini_demo_cells": [
+    "A375",
+    "HT29",
+    "NCIH460",
+    "SKOV3"
+  ],
+  "mini_demo_pair_count": 30,
+  "mini_demo_sample_count": 120,
+  "notes": [
+    "This bundle is for inference showcase only and does not contain ground-truth labels.",
+    "All candidate rows are excluded from the raw 16907-sample four-model intersection bundle.",
+    "Because the main experiment and both sub-experiments are derived from the same raw intersection universe, this showcase bundle is also disjoint from those experiment samples.",
+    "The recommended deployment policy is to use the saved 5-fold models as an ensemble and average their predictions on this bundle."
+  ],
+  "overlap_with_source_sample_count": 0,
+  "raw_seen_sample_count": 16907,
+  "sample_count": 3480,
+  "seen_pair_count": 583,
+  "source_bundle": "D:\\codex\\bishe_base\\benchmark_factory\\input_bundles\\oneil_intersection_38drug_29cell",
+  "unseen_pair_count": 120
+}
