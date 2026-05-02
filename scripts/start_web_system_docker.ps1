@@ -6,6 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $composeFile = Join-Path $repoRoot "docker-compose.web.yml"
+$gpuComposeFile = Join-Path $repoRoot "docker-compose.web.gpu.yml"
 $dockerDesktopExe = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 
 function Ensure-DockerReady {
@@ -53,3 +54,6 @@ Write-Host "Gateway:       http://127.0.0.1:8000/health"
 Write-Host "Training:      http://127.0.0.1:8011/health"
 Write-Host ""
 Write-Host "This compose file now includes the inference runtime and training service alongside the web frontend/backend."
+if (Test-Path $gpuComposeFile) {
+    Write-Host "GPU mode (optional): docker compose -f docker-compose.web.yml -f docker-compose.web.gpu.yml up -d --build"
+}

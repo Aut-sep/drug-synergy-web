@@ -71,8 +71,8 @@ services:
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
         PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
-        ENV_FILE: benchmark_factory/env/ddi_infer.yml
-        ENV_NAME: ddi_infer
+        ENV_FILE: benchmark_factory/env/ddi.yml
+        ENV_NAME: ddi
     working_dir: /workspace/web_system_runtime
     environment:
       MODEL_NAME: DualSyn
@@ -91,8 +91,8 @@ services:
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
         PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
-        ENV_FILE: benchmark_factory/env/mf_infer.yml
-        ENV_NAME: mf_infer
+        ENV_FILE: benchmark_factory/env/mf.yml
+        ENV_NAME: mf
     working_dir: /workspace/web_system_runtime
     environment:
       MODEL_NAME: MFSynDCP
@@ -111,8 +111,8 @@ services:
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
         PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
-        ENV_FILE: benchmark_factory/env/mvc_infer.yml
-        ENV_NAME: mvc_infer
+        ENV_FILE: benchmark_factory/env/mvc.yml
+        ENV_NAME: mvc
     working_dir: /workspace/web_system_runtime
     environment:
       MODEL_NAME: MVCASyn
@@ -131,8 +131,8 @@ services:
       dockerfile: web_system_runtime/docker/Dockerfile.model-service
       args:
         PYTHON_311_IMAGE: ${PYTHON_311_IMAGE:-python:3.11-slim}
-        ENV_FILE: benchmark_factory/env/mtl_infer.yml
-        ENV_NAME: mtl_infer
+        ENV_FILE: benchmark_factory/env/mtl.yml
+        ENV_NAME: mtl
     working_dir: /workspace/web_system_runtime
     environment:
       MODEL_NAME: MTLSynergy
