@@ -12,6 +12,12 @@ from unittest.mock import patch
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
+REPO_ROOT = BACKEND_ROOT.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+RUNTIME_ROOT = REPO_ROOT / "web_system_runtime"
+if str(RUNTIME_ROOT) not in sys.path:
+    sys.path.insert(0, str(RUNTIME_ROOT))
 
 
 class RuntimeIndependenceTests(unittest.TestCase):
@@ -99,6 +105,26 @@ class RuntimeIndependenceTests(unittest.TestCase):
             (self.runtime_root / "outputs" / "web_system_bridge" / "result.csv").resolve(),
         )
         self.assertNotIn("streamlit_system", rewritten)
+
+    def test_runtime_bundle_validation_defaults_to_backend_workspace_override(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "WEB_SYSTEM_RUNTIME_ROOT": str(self.runtime_root),
+                "WEB_SYSTEM_WORKSPACE_ROOT": str(self.workspace_root),
+                "WEB_SYSTEM_GATEWAY_RUNTIME_ROOT": "/workspace/web_system_runtime",
+                "SYNERGY_WORKSPACE_ROOT": "",
+            },
+            clear=False,
+        ):
+            import shared.sample_validation as sample_validation_module
+            import runtime_support.bundle as bundle_module
+
+            importlib.reload(sample_validation_module)
+            importlib.reload(bundle_module)
+
+        self.assertEqual(sample_validation_module.DEFAULT_WORKSPACE_ROOT, self.workspace_root.resolve())
+        self.assertEqual(bundle_module.DEFAULT_MODEL_ROOT, self.workspace_root.resolve())
 
 
 if __name__ == "__main__":

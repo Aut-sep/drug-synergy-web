@@ -12,7 +12,11 @@ import pandas as pd
 ALL_MODELS = ["DualSyn", "MFSynDCP", "MVCASyn", "MTLSynergy"]
 SAMPLE_REQUIRED_COLUMNS = {"sample_id", "drug_a_name", "drug_b_name", "cell_line"}
 RUNTIME_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_WORKSPACE_ROOT = Path(os.environ.get("SYNERGY_WORKSPACE_ROOT", RUNTIME_ROOT.parent)).resolve()
+DEFAULT_WORKSPACE_ROOT = Path(
+    os.environ.get("SYNERGY_WORKSPACE_ROOT")
+    or os.environ.get("WEB_SYSTEM_WORKSPACE_ROOT")
+    or RUNTIME_ROOT.parent
+).resolve()
 DEFAULT_INTERSECTION_NAME = "oneil_intersection_38drug_29cell"
 
 

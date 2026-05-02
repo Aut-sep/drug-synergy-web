@@ -23,7 +23,11 @@ SAMPLE_REQUIREMENT = {
 }
 
 RUNTIME_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_MODEL_ROOT = Path(os.environ.get("SYNERGY_WORKSPACE_ROOT", RUNTIME_ROOT.parent)).resolve()
+DEFAULT_MODEL_ROOT = Path(
+    os.environ.get("SYNERGY_WORKSPACE_ROOT")
+    or os.environ.get("WEB_SYSTEM_WORKSPACE_ROOT")
+    or RUNTIME_ROOT.parent
+).resolve()
 
 
 def _read_csv_safe(csv_path: Path) -> tuple[pd.DataFrame | None, str]:
