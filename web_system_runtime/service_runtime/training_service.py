@@ -224,6 +224,7 @@ def _reset_training_outputs(source_root: Path) -> None:
     for output_path in output_paths:
         if output_path.exists():
             shutil.rmtree(output_path)
+        output_path.mkdir(parents=True, exist_ok=True)
 
 
 def _command_for_model(model_name: str, request: TrainingRunRequest, project_root: Path, version_id: str) -> list[list[str]]:
