@@ -44,7 +44,12 @@ RUN bash /tmp/miniconda.sh -b -p ${CONDA_ROOT} && \
     ${CONDA_ROOT}/bin/conda env create -n mf -f /tmp/mf.yml && \
     ${CONDA_ROOT}/bin/conda env create -n mvc -f /tmp/mvc.yml && \
     ${CONDA_ROOT}/bin/conda env create -n mtl -f /tmp/mtl.yml && \
-    ${CONDA_ROOT}/bin/python -m pip install "fastapi>=0.115" "uvicorn>=0.30" "pandas>=2.2" && \
+    ${CONDA_ROOT}/bin/python -m pip install \
+      "fastapi==0.115.14" \
+      "pydantic==2.10.6" \
+      "starlette==0.46.2" \
+      "uvicorn==0.34.2" \
+      "pandas==2.2.3" && \
     ${CONDA_ROOT}/bin/conda clean -afy && \
     rm -f /tmp/miniconda.sh /tmp/ddi.yml /tmp/mf.yml /tmp/mvc.yml /tmp/mtl.yml /root/.condarc
 

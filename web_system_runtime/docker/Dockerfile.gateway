@@ -6,7 +6,13 @@ ENV PIP_NO_CACHE_DIR=1 \
 
 WORKDIR /workspace/web_system_runtime
 
-RUN pip install "fastapi>=0.115" "uvicorn>=0.30" "pandas>=2.2" "requests>=2.32"
+RUN pip install \
+    "fastapi==0.115.14" \
+    "pydantic==2.10.6" \
+    "starlette==0.46.2" \
+    "uvicorn==0.34.2" \
+    "pandas==2.2.3" \
+    "requests==2.32.3"
 
 EXPOSE 8000
 
