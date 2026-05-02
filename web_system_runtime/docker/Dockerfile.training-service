@@ -5,11 +5,19 @@ ARG CONDA_MAIN_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main
 ARG CONDA_R_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/r
 ARG CONDA_CLOUD_CHANNEL=https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud
 ARG CONDA_SSL_VERIFY=true
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ARG PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+ARG PIP_DEFAULT_TIMEOUT=120
+ARG PIP_RETRIES=10
 
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     CONDA_ROOT=/opt/conda \
-    PATH=/opt/conda/bin:$PATH
+    PATH=/opt/conda/bin:$PATH \
+    PIP_INDEX_URL=${PIP_INDEX_URL} \
+    PIP_TRUSTED_HOST=${PIP_TRUSTED_HOST} \
+    PIP_DEFAULT_TIMEOUT=${PIP_DEFAULT_TIMEOUT} \
+    PIP_RETRIES=${PIP_RETRIES}
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends bash bzip2 ca-certificates && \
@@ -45,6 +53,10 @@ RUN bash /tmp/miniconda.sh -b -p ${CONDA_ROOT} && \
     ${CONDA_ROOT}/bin/conda env create -n mvc -f /tmp/mvc.yml && \
     ${CONDA_ROOT}/bin/conda env create -n mtl -f /tmp/mtl.yml && \
     ${CONDA_ROOT}/bin/python -m pip install \
+      -i "${PIP_INDEX_URL}" \
+      --trusted-host "${PIP_TRUSTED_HOST}" \
+      --default-timeout "${PIP_DEFAULT_TIMEOUT}" \
+      --retries "${PIP_RETRIES}" \
       "fastapi==0.115.14" \
       "pydantic==2.10.6" \
       "starlette==0.46.2" \
