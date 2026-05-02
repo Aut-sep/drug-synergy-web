@@ -37,7 +37,15 @@ docker compose -f docker-compose.web.yml up -d --build
 
 ## Deploy With GPU
 
-If the Linux host has an NVIDIA driver plus `nvidia-container-toolkit` working with Docker, use:
+If the Linux host has an NVIDIA driver plus `nvidia-container-toolkit`, first register the NVIDIA runtime with Docker:
+
+```bash
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo systemctl restart docker
+sudo docker info | grep -i runtime -A5
+```
+
+Then launch the GPU override:
 
 ```bash
 docker compose -f docker-compose.web.yml -f docker-compose.web.gpu.yml up -d --build

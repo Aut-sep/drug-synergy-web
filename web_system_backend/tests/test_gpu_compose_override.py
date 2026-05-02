@@ -22,7 +22,7 @@ class GpuComposeOverrideTests(unittest.TestCase):
         ]:
             self.assertIn(service_name, compose_text)
 
-        self.assertIn("gpus: all", compose_text)
+        self.assertIn("runtime: nvidia", compose_text)
         self.assertIn("NVIDIA_VISIBLE_DEVICES", compose_text)
         self.assertIn("NVIDIA_DRIVER_CAPABILITIES", compose_text)
 
