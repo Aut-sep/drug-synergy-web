@@ -24,6 +24,9 @@ class TrainingRuntimeLayoutTests(unittest.TestCase):
             source_root / "MFSynDCP" / "MFSynDCP" / "result",
             source_root / "MVCASyn" / "results" / "training_run",
             source_root / "MTLSynergy" / "save",
+            source_root / "MTLSynergy" / "save" / "AutoEncoder",
+            source_root / "MTLSynergy" / "save" / "MTLSA",
+            source_root / "MTLSynergy" / "save" / "MTLSynergy",
             source_root / "MTLSynergy" / "result",
         ]
 

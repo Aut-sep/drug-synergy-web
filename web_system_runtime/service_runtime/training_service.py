@@ -219,6 +219,9 @@ def _reset_training_outputs(source_root: Path) -> None:
         source_root / "MFSynDCP" / "MFSynDCP" / "result",
         source_root / "MVCASyn" / "results" / "training_run",
         source_root / "MTLSynergy" / "save",
+        source_root / "MTLSynergy" / "save" / "AutoEncoder",
+        source_root / "MTLSynergy" / "save" / "MTLSA",
+        source_root / "MTLSynergy" / "save" / "MTLSynergy",
         source_root / "MTLSynergy" / "result",
     ]
     for output_path in output_paths:
