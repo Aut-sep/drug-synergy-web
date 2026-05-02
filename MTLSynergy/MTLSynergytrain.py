@@ -10,6 +10,7 @@ import torch
 import time
 import pandas as pd
 from utils.tools import EarlyStopping, set_seed, filter1, CategoricalCrossEntropyLoss
+from utils.metrics_safe import safe_roc_auc_score, summarize_metric_values
 from static.constant import Fold, DrugAE_SaveBase, CellAE_SaveBase, MTLSynergy_SaveBase, MTLSynergy_Result,DrugAE_OutputDim,CellAE_OutputDim
 from Models import MTLSynergy, DrugAE, CellLineAE
 import numpy as np
@@ -227,8 +228,8 @@ def test(model, drugEncoder, cellLineEncoder, test_dataloader, test_num, mse, cc
         y_pred4 = y_pred4.cpu()
         y_pred3_prob = y_pred3[:, 1]
         y_pred4_prob = y_pred4[:, 1]
-        synergy_result["ROC AUC"] = roc_auc_score(y_true3, y_pred3_prob)
-        sensitivity_result["ROC AUC"] = roc_auc_score(y_true4, y_pred4_prob)
+        synergy_result["ROC AUC"] = safe_roc_auc_score(y_true3, y_pred3_prob)
+        sensitivity_result["ROC AUC"] = safe_roc_auc_score(y_true4, y_pred4_prob)
         y_pred3_label = y_pred3.argmax(axis=1)
         y_pred4_label = y_pred4.argmax(axis=1)
         y_pred3_prec, y_pred3_recall, y_pred3_threshold = precision_recall_curve(y_true3, y_pred3_prob)
@@ -237,8 +238,8 @@ def test(model, drugEncoder, cellLineEncoder, test_dataloader, test_num, mse, cc
         sensitivity_result["PR AUC"] = auc(y_pred4_recall, y_pred4_prec)
         synergy_result["ACC"] = accuracy_score(y_true3, y_pred3_label)
         sensitivity_result["ACC"] = accuracy_score(y_true4, y_pred4_label)
-        synergy_result["PREC"] = precision_score(y_true3, y_pred3_label)
-        sensitivity_result["PREC"] = precision_score(y_true4, y_pred4_label)
+        synergy_result["PREC"] = precision_score(y_true3, y_pred3_label, zero_division=0)
+        sensitivity_result["PREC"] = precision_score(y_true4, y_pred4_label, zero_division=0)
         synergy_result["Kappa"] = cohen_kappa_score(y_true3, y_pred3_label)
         sensitivity_result["Kappa"] = cohen_kappa_score(y_true4, y_pred4_label)
         print("test result:\n" + "Synergy:\n" + str(synergy_result) + "\nSensitivity:\n" + str(
@@ -262,9 +263,10 @@ def calculate(result, name):
     with open(MTLSynergy_Result, 'a') as file:
         file.write(str(name) + " result :\n")
     for key in keys:
-        print(str(key) + ": " + str([np.mean(tol_result[key]), np.std(tol_result[key])]))
+        summary_stats = summarize_metric_values(tol_result[key])
+        print(str(key) + ": " + str(summary_stats))
         with open(MTLSynergy_Result, 'a') as file:
-            file.write(str(key) + ": " + str([np.mean(tol_result[key]), np.std(tol_result[key])]) + "\n")
+            file.write(str(key) + ": " + str(summary_stats) + "\n")
 
 
 epochs = 500
