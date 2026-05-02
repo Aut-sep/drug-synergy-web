@@ -230,7 +230,17 @@ def _reset_training_outputs(source_root: Path) -> None:
         output_path.mkdir(parents=True, exist_ok=True)
 
 
-def _command_for_model(model_name: str, request: TrainingRunRequest, project_root: Path, version_id: str) -> list[list[str]]:
+def _resolve_mtlsynergy_batch_size(sample_count: int) -> int:
+    return max(1, min(32, sample_count // 4))
+
+
+def _command_for_model(
+    model_name: str,
+    request: TrainingRunRequest,
+    project_root: Path,
+    version_id: str,
+    sample_count: Optional[int] = None,
+) -> list[list[str]]:
     env_name = MODEL_ENVS[model_name]
     device = request.device
     quick_epochs = int(request.epochs or (2 if request.profile == "quick" else 0))
@@ -262,6 +272,8 @@ def _command_for_model(model_name: str, request: TrainingRunRequest, project_roo
     if model_name == "MTLSynergy":
         ae_extra = ["--device", device]
         train_extra = ["--device", device]
+        if sample_count is not None:
+            train_extra.extend(["--batch-size", str(_resolve_mtlsynergy_batch_size(sample_count))])
         if quick_epochs:
             ae_extra.extend(["--drug-epochs", str(quick_epochs), "--cell-epochs", str(quick_epochs), "--patience", str(quick_epochs)])
             train_extra.extend(["--epochs", str(quick_epochs), "--patience", str(quick_epochs)])
@@ -429,6 +441,7 @@ def _run_training_background(run_id: str, request: TrainingRunRequest) -> None:
 
     try:
         bundle_path = Path(str(run["bundle_path"]))
+        sample_count = len(pd.read_csv(bundle_path / "samples.csv"))
         _update_run(run_id, phase_label="导出训练数据", progress_percent=5, log_message=f"训练包: {bundle_path}")
         source_root, exports_root = _prepare_training_workspace(run_id, request, bundle_path)
 
@@ -452,7 +465,13 @@ def _run_training_background(run_id: str, request: TrainingRunRequest) -> None:
             else:
                 project_root = source_root / model_name
 
-            for step_command in _command_for_model(model_name, request, project_root, str(run["version_id"])):
+            for step_command in _command_for_model(
+                model_name,
+                request,
+                project_root,
+                str(run["version_id"]),
+                sample_count=sample_count,
+            ):
                 _stream_command(step_command, project_root, run_id, model_name, log_dir / f"{model_name}.log")
 
             statuses = dict(run.get("model_statuses", {}))
