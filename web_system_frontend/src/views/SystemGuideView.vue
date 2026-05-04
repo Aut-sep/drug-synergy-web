@@ -3,7 +3,7 @@
     <div class="page-title">
       <div>
         <h2>系统说明 / 模型说明</h2>
-        <p>这一页用于说明毕业设计的软件系统边界：模型集合、分层架构、任务链路、版本资产与结果资产如何被组织为统一交付系统。</p>
+        <p>这一页只说明系统边界、接入方式和四个模型在页面中的角色。</p>
       </div>
     </div>
 
@@ -22,14 +22,14 @@
       </div>
       <div class="info-card">
         <h4>训练状态</h4>
-        <p>系统完整，执行允许受限</p>
+        <p>完整可见，执行可能受限</p>
       </div>
     </div>
 
     <el-alert
       class="inline-alert"
       title="当前系统定位"
-      description="本项目不是重写四个模型算法，而是把 DualSyn、MFSynDCP、MVCASyn、MTLSynergy 组织成统一数据包、统一推理链路、统一训练组织和统一结果展示的软件系统。"
+      description="本项目不是重写模型算法，而是把 DualSyn、MFSynDCP、MVCASyn、MTLSynergy 组织成统一数据包、统一任务链路、统一版本资产和统一结果展示的软件系统。"
       type="info"
       show-icon
       :closable="false"
@@ -53,11 +53,11 @@
           <div class="guide-stack">
             <div class="info-card">
               <h4>已完成</h4>
-              <p>数据集管理、推理任务、结果查看、任务日志、版本资产、产物下载和状态分级提示已经形成完整系统闭环。</p>
+              <p>数据集管理、推理任务、结果查看、任务日志、版本资产、产物下载和状态提示已经形成闭环。</p>
             </div>
             <div class="info-card">
               <h4>受限说明</h4>
-              <p>训练执行会受到本机运行条件影响，因此允许失败；但训练创建、调度、日志、版本资产和产物说明链路保持完整可见。</p>
+              <p>训练执行会受到本机环境影响，但任务创建、调度、日志、版本资产和产物说明链路保持完整可见。</p>
             </div>
           </div>
         </el-card>
@@ -80,22 +80,22 @@
         <el-card class="panel-card" shadow="never">
           <template #header>统一任务链路</template>
           <el-steps direction="vertical" :active="4" finish-status="success">
-            <el-step title="前端发起任务" description="Vue3 前端负责参数选择、状态提示、结果查看和统一交互入口。" />
+            <el-step title="前端发起任务" description="Vue 3 前端负责参数选择、状态提示、结果查看和统一交互入口。" />
             <el-step title="后端编排请求" description="FastAPI 后端负责任务实体、接口封装、详情序列化、状态分级和下载入口。" />
-            <el-step title="调用模型执行组件" description="系统按统一接口组织推理网关、训练服务组件、样本校验、日志和模型资产。" />
-            <el-step title="回收结果并统一展示" description="推理结果、训练日志、版本资产和产物下载被重新组织到统一 Web 界面中。" />
+            <el-step title="调用模型执行组件" description="系统按统一接口组织推理网关、训练服务、样本校验、日志和模型资产。" />
+            <el-step title="回收结果并统一展示" description="推理结果、训练日志、版本资产和产物下载被统一组织到 Web 界面中。" />
           </el-steps>
         </el-card>
       </el-col>
 
       <el-col :xs="24" :xl="12">
         <el-card class="panel-card" shadow="never">
-          <template #header>答辩可讲清的结论</template>
+          <template #header>系统结论</template>
           <el-timeline>
-            <el-timeline-item timestamp="软件系统目标">把研究型原型组织成可运行、可验证、可展示、可维护的正式软件系统。</el-timeline-item>
+            <el-timeline-item timestamp="软件系统目标">把研究型原型组织成可运行、可验证、可展示、可维护的软件系统。</el-timeline-item>
             <el-timeline-item timestamp="模型层策略">保持既有模型算法不重写，只做统一接入与统一组织。</el-timeline-item>
-            <el-timeline-item timestamp="系统层贡献">统一数据包、统一任务中心、统一版本中心、统一结果展示和统一状态说明。</el-timeline-item>
-            <el-timeline-item timestamp="受限但完整">即使训练执行受运行条件限制，系统层仍能完整表达任务、日志、版本和产物能力。</el-timeline-item>
+            <el-timeline-item timestamp="系统层贡献">统一数据包、统一任务中心、统一版本中心和统一结果展示。</el-timeline-item>
+            <el-timeline-item timestamp="受限但完整">即使训练执行受环境限制，系统层仍能完整表达任务、日志、版本和产物能力。</el-timeline-item>
           </el-timeline>
         </el-card>
       </el-col>
@@ -114,13 +114,13 @@ const modelRows = [
 const architectureLayers = [
   {
     tag: 'Frontend',
-    title: 'Vue3 + TypeScript + Pinia',
-    description: '负责页面交互、状态展示、任务入口、结果工作台、版本中心和系统说明等答辩可见界面。',
+    title: 'Vue 3 + TypeScript + Pinia',
+    description: '负责页面交互、状态展示、任务入口、结果工作台、版本中心和系统说明。',
   },
   {
     tag: 'Backend',
     title: 'FastAPI + SQLAlchemy',
-    description: '负责任务管理、详情聚合、下载接口、版本资产整理、健康探测和统一接口组织。',
+    description: '负责任务管理、详情聚合、下载接口、版本资产整理和统一接口组织。',
   },
   {
     tag: 'Execution',
@@ -130,7 +130,7 @@ const architectureLayers = [
   {
     tag: 'Assets',
     title: '统一数据包与版本资产',
-    description: '把数据集、训练产物、推理输出和历史版本重新组织成统一可管理的软件资产。',
+    description: '把数据集、训练产物、推理输出和历史版本组织成统一可管理的资产。',
   },
 ]
 </script>

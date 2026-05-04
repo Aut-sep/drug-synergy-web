@@ -7,7 +7,7 @@ from typing import Any
 
 from ..core.config import from_storage_path, get_settings
 from ..models import DatasetBundle, RunTask
-from ..schemas.entities import DatasetBundleRead, RunTaskRead
+from ..schemas.entities import DatasetBundleRead, ModelVersionRead, RunTaskRead
 
 
 KNOWN_TASK_STATES = {
@@ -74,6 +74,28 @@ def coerce_dict(value: object) -> dict[str, Any] | None:
             return parsed
         return {"value": parsed}
     return {"value": value}
+
+
+def coerce_string_mapping(value: object) -> dict[str, str]:
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return {
+            str(key): str(item)
+            for key, item in value.items()
+            if str(key).strip() and str(item).strip()
+        }
+    if isinstance(value, str):
+        raw_text = value.strip()
+        if not raw_text:
+            return {}
+        try:
+            parsed = json.loads(raw_text)
+        except json.JSONDecodeError:
+            return {}
+        if isinstance(parsed, dict):
+            return coerce_string_mapping(parsed)
+    return {}
 
 
 def normalize_task_state(state: object, *, default: str = "waiting") -> str:
@@ -191,6 +213,8 @@ def task_to_schema(task: RunTask) -> RunTaskRead:
     output_path_host = resolve_bridge_path(task.output_path)
     result_download_endpoint = None
     artifacts_download_endpoint = None
+    summary = coerce_dict(task.summary) or {}
+    model_version_ids = coerce_string_mapping(summary.get("model_version_ids"))
     if task.task_type == "inference" and output_path_host and output_path_host.exists() and output_path_host.is_file():
         result_download_endpoint = f"/api/inference-runs/{task.id}/download"
     if task.task_type == "training" and output_path_host and output_path_host.exists() and output_path_host.is_dir():
@@ -204,6 +228,9 @@ def task_to_schema(task: RunTask) -> RunTaskRead:
         remote_run_id=str(task.remote_run_id or ""),
         dataset_id=task.dataset_id,
         model_version_id=task.model_version_id,
+        model_version_ids=model_version_ids,
+        version_group_id=str(summary.get("version_group_id") or summary.get("version_id") or task.model_version_id or ""),
+        version_group_name=str(summary.get("version_group_name") or summary.get("group_name") or summary.get("version_note") or ""),
         selected_models=coerce_string_list(task.selected_models),
         output_path=task.output_path,
         output_path_host=str(output_path_host) if output_path_host else None,
@@ -212,8 +239,34 @@ def task_to_schema(task: RunTask) -> RunTaskRead:
         artifacts_download_endpoint=artifacts_download_endpoint,
         log_excerpt=task.log_excerpt,
         error_message=task.error_message,
-        summary=coerce_dict(task.summary),
+        summary=summary or None,
         detail_endpoint=f"/api/{task.task_type}-runs/{task.id}/detail",
         created_at=format_timestamp(task.created_at),
         updated_at=format_timestamp(task.updated_at),
+    )
+
+
+def model_version_to_schema(payload: dict[str, Any]) -> ModelVersionRead:
+    version_group_name = str(
+        payload.get("version_group_name")
+        or payload.get("group_name")
+        or payload.get("version_note")
+        or ""
+    )
+    return ModelVersionRead(
+        version_id=str(payload.get("version_id") or ""),
+        base_version_id=str(payload.get("base_version_id") or "") or None,
+        group_id=str(payload.get("group_id") or payload.get("base_version_id") or payload.get("version_id") or "") or None,
+        group_name=version_group_name or None,
+        version_group_name=version_group_name or None,
+        model_name=str(payload.get("model_name") or "") or None,
+        created_at=str(payload.get("created_at") or "") or None,
+        selected_models=coerce_string_list(payload.get("selected_models")),
+        profile=str(payload.get("profile") or "") or None,
+        version_note=str(payload.get("version_note") or "") or None,
+        version_dir=str(payload.get("version_dir") or "") or None,
+        artifact_root=str(payload.get("artifact_root") or "") or None,
+        is_virtual_child=bool(payload.get("is_virtual_child", False)),
+        source_kind=str(payload.get("source_kind") or "") or None,
+        availability_note=str(payload.get("availability_note") or "") or None,
     )

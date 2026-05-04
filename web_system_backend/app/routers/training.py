@@ -46,6 +46,7 @@ def create_run(payload: TrainingRunCreate, db: Session = Depends(get_db)) -> Run
             device=payload.device,
             epochs=payload.epochs,
             label_threshold=payload.label_threshold,
+            version_group_name=payload.version_group_name,
             version_note=payload.version_note,
         )
     except ValueError as exc:

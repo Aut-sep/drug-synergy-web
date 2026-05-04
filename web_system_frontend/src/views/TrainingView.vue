@@ -3,7 +3,7 @@
     <div class="page-title">
       <div>
         <h2>训练中心</h2>
-        <p>训练模块保持系统级完整：支持参数配置、任务跟踪、日志查看、版本回填和产物下载；当本机环境有限时，会明确显示为受限能力。</p>
+        <p>支持参数配置、任务跟踪、日志查看、版本登记和产物下载；当本机环境有限时，会明确显示为受限能力。</p>
       </div>
     </div>
 
@@ -70,8 +70,8 @@
                 <el-checkbox v-for="model in allModels" :key="model" :label="model" :value="model" />
               </el-checkbox-group>
             </el-form-item>
-            <el-form-item label="版本备注">
-              <el-input v-model="form.versionNote" placeholder="例如：答辩演示 quick epoch=2" />
+            <el-form-item label="训练组/实验名">
+              <el-input v-model="form.versionGroupName" placeholder="例如：exp_march_01" />
             </el-form-item>
             <el-button
               type="primary"
@@ -178,7 +178,7 @@ const form = reactive({
   epochs: 2,
   labelThreshold: 10,
   selectedModels: [...allModels],
-  versionNote: '',
+  versionGroupName: '',
 })
 
 let timer: number | undefined
@@ -212,8 +212,8 @@ const runningExplanation = computed(() => {
   }
   return {
     title: '当前存在长时训练任务',
-    description:
-      '训练任务会经历数据准备、环境切换、顺序训练和结果登记，长时间显示 waiting 或 running 不代表前端卡死。演示时建议结合任务详情中的更新时间、日志和取消入口一起说明。',
+      description:
+        '训练任务会经历数据准备、环境切换、顺序训练和结果登记，长时间显示 waiting 或 running 不代表前端卡死。可结合任务详情中的更新时间、日志和取消入口一起查看进度。',
     type: 'info' as const,
   }
 })
@@ -252,7 +252,8 @@ async function submitRun() {
       device: form.device,
       epochs: form.epochs,
       label_threshold: form.labelThreshold,
-      version_note: form.versionNote,
+      version_group_name: form.versionGroupName,
+      version_note: form.versionGroupName,
     })
     await viewDetail(created.id, true)
     ElMessage.success('训练任务已提交。')

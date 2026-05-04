@@ -2,12 +2,12 @@
   <el-container class="app-shell">
     <el-aside width="268px" class="app-shell__aside">
       <div class="brand-panel">
-        <div class="brand-panel__eyebrow">Graduation Project</div>
+        <div class="brand-panel__eyebrow">Drug Synergy Web</div>
         <h1>药物协同预测系统</h1>
-        <p>前后端分离、任务可追踪、推理可闭环、训练能力可受限展示的统一软件系统。</p>
+        <p>统一查看数据集、任务、版本与结果。</p>
       </div>
 
-      <div class="menu-panel">
+      <nav class="menu-panel" aria-label="主导航">
         <RouterLink
           v-for="item in navItems"
           :key="item.path"
@@ -18,13 +18,13 @@
           <strong>{{ item.title }}</strong>
           <span>{{ item.subtitle }}</span>
         </RouterLink>
-      </div>
+      </nav>
     </el-aside>
 
-    <el-container>
+    <el-container class="app-shell__content">
       <el-header class="app-shell__header">
         <div>
-          <div class="app-shell__header-label">Front / Back Separation · Unified Task Chain</div>
+          <div class="app-shell__header-label">Unified Workflow</div>
           <div class="app-shell__header-title">{{ route.meta.title ?? '药物协同预测系统' }}</div>
         </div>
         <div class="app-shell__header-meta">
@@ -36,19 +36,15 @@
       <el-main class="app-shell__main">
         <section class="hero-banner panel-card">
           <div>
-            <div class="hero-banner__eyebrow">System Story</div>
-            <h2>面向统一数据包、统一任务链路与统一结果展示而设计的 Web 软件系统</h2>
-            <p>
-              本系统围绕模型执行组件、训练服务组件、版本资产和结果资产组织完整的软件流程，
-              统一覆盖数据集管理、任务管理、结果查看、版本中心和系统说明等交付场景，
-              适合作为毕业设计的软件系统成果进行展示、答辩和后续维护。
-            </p>
+            <div class="hero-banner__eyebrow">Overview</div>
+            <h2>统一管理推理、训练、版本与结果</h2>
+            <p>围绕四个模型构建统一任务链路，便于提交任务、跟踪状态、查看产物和回看版本。</p>
           </div>
           <div class="hero-banner__badges">
-            <el-tag type="success" effect="dark">Vue3 + TypeScript</el-tag>
-            <el-tag type="warning" effect="dark">Pinia</el-tag>
+            <el-tag type="success" effect="dark">Vue 3</el-tag>
+            <el-tag type="warning" effect="dark">TypeScript</el-tag>
             <el-tag type="primary" effect="dark">FastAPI</el-tag>
-            <el-tag type="info" effect="dark">Model Execution Components</el-tag>
+            <el-tag type="info" effect="dark">Per-Model Versions</el-tag>
           </div>
         </section>
 
@@ -87,13 +83,13 @@ const trainingStore = useTrainingStore()
 const refreshingAll = ref(false)
 
 const navItems = [
-  { path: '/dashboard', title: '系统总览', subtitle: '服务状态、资源信息、答辩摘要' },
-  { path: '/system-guide', title: '系统说明', subtitle: '模型集合、分层架构、系统边界' },
-  { path: '/datasets', title: '数据集管理', subtitle: '上传数据包、校验、查看资产' },
-  { path: '/inference', title: '推理工作台', subtitle: '提交推理、查看结果、下载输出' },
-  { path: '/training', title: '训练中心', subtitle: '任务跟踪、失败日志、受限能力说明' },
-  { path: '/versions', title: '版本中心', subtitle: '历史版本、来源说明、版本资产' },
-  { path: '/runs', title: '任务中心', subtitle: '统一查看推理与训练任务详情' },
+  { path: '/dashboard', title: '系统总览', subtitle: '服务状态、资源概览' },
+  { path: '/system-guide', title: '系统说明', subtitle: '模型接入与系统边界' },
+  { path: '/datasets', title: '数据集管理', subtitle: '上传、校验、查看' },
+  { path: '/inference', title: '推理工作台', subtitle: '提交、查看、下载' },
+  { path: '/training', title: '训练中心', subtitle: '任务、日志、产物' },
+  { path: '/versions', title: '版本中心', subtitle: '训练组与模型版本' },
+  { path: '/runs', title: '任务中心', subtitle: '统一查看任务详情' },
 ]
 
 const syncWarnings = computed(() =>
@@ -133,13 +129,24 @@ onMounted(() => {
 <style scoped>
 .app-shell {
   min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(175, 208, 255, 0.22), transparent 28%),
+    linear-gradient(180deg, #eef4fb 0%, #f8fbff 44%, #f2f6fb 100%);
 }
 
 .app-shell__aside {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
   padding: 22px 18px;
-  background: linear-gradient(180deg, #112240 0%, #173867 100%);
+  background: linear-gradient(180deg, #10233f 0%, #153760 100%);
   color: #f6f8fb;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.app-shell__content {
+  min-width: 0;
 }
 
 .brand-panel {
@@ -182,7 +189,7 @@ onMounted(() => {
   gap: 6px;
   padding: 16px 18px;
   border-radius: 18px;
-  color: rgba(246, 248, 251, 0.88);
+  color: rgba(246, 248, 251, 0.9);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid transparent;
   transition: all 0.2s ease;
@@ -196,7 +203,7 @@ onMounted(() => {
 }
 
 .menu-panel__item span {
-  color: rgba(246, 248, 251, 0.7);
+  color: rgba(246, 248, 251, 0.72);
   font-size: 13px;
 }
 
@@ -204,6 +211,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   padding: 22px 28px 0;
   background: transparent;
   height: auto;
@@ -233,7 +241,35 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 20px 28px 28px;
+  padding: 18px 28px 28px;
+}
+
+.hero-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 22px 24px;
+}
+
+.hero-banner h2 {
+  margin: 8px 0 10px;
+  font-size: 28px;
+  color: #102542;
+}
+
+.hero-banner p {
+  margin: 0;
+  max-width: 720px;
+  color: #52607a;
+  line-height: 1.7;
+}
+
+.hero-banner__badges {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .app-shell__alerts {
@@ -241,72 +277,23 @@ onMounted(() => {
   gap: 12px;
 }
 
-.hero-banner {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: flex-start;
-  padding: 24px 26px;
-}
-
-.hero-banner h2 {
-  margin: 10px 0 8px;
-  font-size: 28px;
-  color: #13294b;
-}
-
-.hero-banner p {
-  margin: 0;
-  max-width: 860px;
-  color: #596880;
-}
-
-.hero-banner__badges {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-@media (max-width: 960px) {
+@media (max-width: 1080px) {
   .app-shell {
-    flex-direction: column;
+    display: block;
   }
 
   .app-shell__aside {
-    width: 100% !important;
+    position: static;
+    width: auto !important;
+    height: auto;
   }
 
   .app-shell__header {
-    padding: 20px 20px 0;
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .app-shell__header-title {
-    font-size: 26px;
-  }
-
-  .app-shell__header-meta {
-    width: 100%;
-    justify-content: space-between;
+    padding: 20px 18px 0;
   }
 
   .app-shell__main {
-    padding: 18px 20px 24px;
-  }
-
-  .hero-banner {
-    flex-direction: column;
-  }
-
-  .hero-banner h2 {
-    font-size: 24px;
-  }
-
-  .hero-banner__badges {
-    justify-content: flex-start;
+    padding: 18px;
   }
 }
 </style>

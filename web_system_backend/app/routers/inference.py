@@ -40,6 +40,7 @@ def create_run(payload: InferenceRunCreate, db: Session = Depends(get_db)) -> Ru
             dataset,
             selected_models=payload.selected_models,
             model_version_id=payload.model_version_id,
+            model_version_ids=payload.model_version_ids,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

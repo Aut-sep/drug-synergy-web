@@ -12,7 +12,7 @@ from typing import Dict, List
 import pandas as pd
 import requests
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from shared.result_table import build_run_summary, finalize_result_table
 from shared.sample_validation import validate_model_output, validate_samples_csv
@@ -26,6 +26,7 @@ MODEL_SERVICE_URLS = {
 }
 DOWNSTREAM_TIMEOUT_SECONDS = int(os.environ.get("GATEWAY_DOWNSTREAM_TIMEOUT", "3600"))
 RUN_LOG_TAIL_SIZE = 30
+MODEL_VERSION_SEPARATOR = "::"
 RUNTIME_ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE_ROOT = Path(os.environ.get("SYNERGY_WORKSPACE_ROOT", RUNTIME_ROOT.parent)).resolve()
 TRAINED_MODEL_ROOT = Path(os.environ.get("SYNERGY_TRAINED_MODEL_ROOT", RUNTIME_ROOT / "trained_model_versions")).resolve()
@@ -39,6 +40,7 @@ class GatewayPredictRequest(BaseModel):
     selected_models: List[str]
     output_root: str
     model_version_id: str = "__default__"
+    model_version_ids: Dict[str, str] = Field(default_factory=dict)
 
 
 app = FastAPI(title="Synergy inference gateway")
@@ -86,8 +88,46 @@ def _append_full_log(run: Dict[str, object], message: str) -> None:
     run["log_lines"] = log_lines[-200:]
 
 
+def _parse_model_version_id(version_id: str) -> tuple[str, str | None]:
+    text = str(version_id or "").strip()
+    if not text:
+        return "", None
+    if MODEL_VERSION_SEPARATOR not in text:
+        return text, None
+    base_version_id, model_name = text.split(MODEL_VERSION_SEPARATOR, 1)
+    return base_version_id.strip(), model_name.strip() or None
+
+
+def _normalize_model_version_map(request: GatewayPredictRequest) -> Dict[str, str]:
+    raw_map = request.model_version_ids if isinstance(request.model_version_ids, dict) else {}
+    return {
+        str(model_name): str(version_id)
+        for model_name, version_id in raw_map.items()
+        if str(model_name).strip() and str(version_id).strip() and str(model_name) in request.selected_models
+    }
+
+
+def _resolve_artifact_root(model_name: str, request: GatewayPredictRequest) -> Path | None:
+    normalized_map = _normalize_model_version_map(request)
+    requested_version_id = normalized_map.get(model_name) or str(request.model_version_id or "").strip()
+    if not requested_version_id or requested_version_id == "__default__":
+        return None
+
+    base_version_id, embedded_model_name = _parse_model_version_id(requested_version_id)
+    if embedded_model_name and embedded_model_name != model_name:
+        raise HTTPException(status_code=400, detail=f"{requested_version_id} does not belong to model {model_name}.")
+    if not base_version_id:
+        return None
+
+    artifact_root = TRAINED_MODEL_ROOT / base_version_id / "artifacts" / model_name
+    if not artifact_root.exists():
+        raise HTTPException(status_code=400, detail=f"{model_name} 训练版本权重目录不存在: {artifact_root}")
+    return artifact_root
+
+
 def _create_run_record(request: GatewayPredictRequest) -> Dict[str, object]:
     run_id = uuid.uuid4().hex[:12]
+    normalized_model_version_ids = _normalize_model_version_map(request)
     return {
         "run_id": run_id,
         "state": "running",
@@ -107,6 +147,7 @@ def _create_run_record(request: GatewayPredictRequest) -> Dict[str, object]:
         "resource_reports": {},
         "selected_models": list(request.selected_models),
         "model_version_id": request.model_version_id,
+        "model_version_ids": normalized_model_version_ids,
         "samples_csv": request.samples_csv,
         "output_root": request.output_root,
         "cancel_requested": False,
@@ -132,6 +173,7 @@ def _serialize_run(run: Dict[str, object]) -> Dict[str, object]:
         "resource_reports": run.get("resource_reports", {}),
         "selected_models": run.get("selected_models", []),
         "model_version_id": run.get("model_version_id", "__default__"),
+        "model_version_ids": run.get("model_version_ids", {}),
         "samples_csv": run.get("samples_csv", ""),
         "result_rows": (run.get("summary") or {}).get("row_count", 0),
         "cancel_requested": bool(run.get("cancel_requested", False)),
@@ -326,10 +368,8 @@ def _execute_prediction(
                 "output_csv": str(model_output_csv),
                 "run_id": run_id,
             }
-            if request.model_version_id and request.model_version_id != "__default__":
-                artifact_root = TRAINED_MODEL_ROOT / request.model_version_id / "artifacts" / model_name
-                if not artifact_root.exists():
-                    raise HTTPException(status_code=400, detail=f"{model_name} 训练版本权重目录不存在: {artifact_root}")
+            artifact_root = _resolve_artifact_root(model_name, request)
+            if artifact_root is not None:
                 service_payload["artifact_root"] = str(artifact_root)
             response = requests.post(
                 f"{service_url.rstrip('/')}/predict",

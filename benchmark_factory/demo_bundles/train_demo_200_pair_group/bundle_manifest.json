@@ -1,0 +1,113 @@
+{
+  "dataset_name": "train_demo_200_pair_group",
+  "description": "200-sample balanced training demo bundle selected from oneil_intersection_38drug_29cell for faster web-system training demos.",
+  "source_bundle": "D:\\codex\\bishe_base\\benchmark_factory\\input_bundles\\oneil_intersection_38drug_29cell",
+  "sample_count": 200,
+  "drug_count": 38,
+  "cell_count": 29,
+  "unique_pair_count": 182,
+  "label10_distribution": {
+    "0": 102,
+    "1": 98
+  },
+  "mtl_syn30_distribution": {
+    "0": 140,
+    "1": 60
+  },
+  "ri_row50_distribution": {
+    "0": 174,
+    "1": 26
+  },
+  "selection_notes": [
+    "subset keeps all 29 cells represented",
+    "subset prefers unique unordered drug pairs to make pair_group folds more even",
+    "subset is screened so each pair_group fold has at least two sensitivity examples and both MTL classification classes present"
+  ],
+  "mtl_fold_screen_report": [
+    {
+      "fold": 0,
+      "test_rows": 40,
+      "syn30_classes": [
+        0,
+        1
+      ],
+      "label10_classes": [
+        0,
+        1
+      ],
+      "sensitivity_count": 16,
+      "sensitivity_classes": [
+        0,
+        1
+      ]
+    },
+    {
+      "fold": 1,
+      "test_rows": 40,
+      "syn30_classes": [
+        0,
+        1
+      ],
+      "label10_classes": [
+        0,
+        1
+      ],
+      "sensitivity_count": 19,
+      "sensitivity_classes": [
+        0,
+        1
+      ]
+    },
+    {
+      "fold": 2,
+      "test_rows": 40,
+      "syn30_classes": [
+        0,
+        1
+      ],
+      "label10_classes": [
+        0,
+        1
+      ],
+      "sensitivity_count": 15,
+      "sensitivity_classes": [
+        0,
+        1
+      ]
+    },
+    {
+      "fold": 3,
+      "test_rows": 40,
+      "syn30_classes": [
+        0,
+        1
+      ],
+      "label10_classes": [
+        0,
+        1
+      ],
+      "sensitivity_count": 17,
+      "sensitivity_classes": [
+        0,
+        1
+      ]
+    },
+    {
+      "fold": 4,
+      "test_rows": 40,
+      "syn30_classes": [
+        0,
+        1
+      ],
+      "label10_classes": [
+        0,
+        1
+      ],
+      "sensitivity_count": 20,
+      "sensitivity_classes": [
+        0,
+        1
+      ]
+    }
+  ]
+}

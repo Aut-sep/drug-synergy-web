@@ -33,6 +33,7 @@ MODEL_ENVS = {
 }
 ALL_MODELS = ["DualSyn", "MFSynDCP", "MVCASyn", "MTLSynergy"]
 RUN_LOG_TAIL_SIZE = 80
+MODEL_VERSION_SEPARATOR = "::"
 
 
 class TrainingRunRequest(BaseModel):
@@ -45,6 +46,7 @@ class TrainingRunRequest(BaseModel):
     label_threshold: float = 10.0
     fold_strategy: str = "pair_group"
     seed: int = 20260413
+    version_group_name: str = ""
     version_note: str = ""
 
 
@@ -146,6 +148,7 @@ def _serialize_run(run: dict[str, object]) -> dict[str, object]:
     return {
         "run_id": run["run_id"],
         "version_id": run.get("version_id", ""),
+        "version_group_name": run.get("version_group_name", ""),
         "state": run["state"],
         "phase_label": run.get("phase_label", ""),
         "progress_percent": run.get("progress_percent", 0),
@@ -165,9 +168,11 @@ def _serialize_run(run: dict[str, object]) -> dict[str, object]:
 def _create_run_record(request: TrainingRunRequest, bundle_path: Path) -> dict[str, object]:
     run_id = uuid.uuid4().hex[:12]
     version_id = f"user_train_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{run_id[:6]}"
+    version_group_name = request.version_group_name.strip() or request.version_note.strip() or version_id
     return {
         "run_id": run_id,
         "version_id": version_id,
+        "version_group_name": version_group_name,
         "state": "running",
         "phase_label": "等待启动",
         "progress_percent": 1,
@@ -411,8 +416,25 @@ def _copy_artifacts(source_root: Path, version_dir: Path) -> None:
 
 
 def _write_manifest(version_dir: Path, run: dict[str, object], request: TrainingRunRequest, exports_root: Path) -> None:
+    base_version_id = str(run["version_id"])
+    version_group_name = str(run.get("version_group_name") or request.version_group_name or request.version_note or base_version_id)
+    model_versions = {
+        model_name: {
+            "version_id": f"{base_version_id}::{model_name}",
+            "base_version_id": base_version_id,
+            "group_id": base_version_id,
+            "group_name": version_group_name,
+            "model_name": model_name,
+            "artifact_root": f"artifacts/{model_name}",
+        }
+        for model_name in run["selected_models"]
+    }
     manifest = {
-        "version_id": run["version_id"],
+        "version_id": base_version_id,
+        "base_version_id": base_version_id,
+        "group_id": base_version_id,
+        "group_name": version_group_name,
+        "version_group_name": version_group_name,
         "created_at": _now_iso(),
         "source_bundle": run["bundle_path"],
         "selected_models": run["selected_models"],
@@ -421,6 +443,7 @@ def _write_manifest(version_dir: Path, run: dict[str, object], request: Training
         "epochs": request.epochs,
         "version_note": request.version_note,
         "exports_root": str(exports_root),
+        "model_versions": model_versions,
         "artifact_layout": {
             "DualSyn": "artifacts/DualSyn/save_model",
             "MFSynDCP": "artifacts/MFSynDCP/result",
@@ -429,6 +452,78 @@ def _write_manifest(version_dir: Path, run: dict[str, object], request: Training
         },
     }
     (version_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _expand_manifest_versions(payload: dict[str, object], version_dir: Path) -> list[dict[str, object]]:
+    base_version_id = str(payload.get("base_version_id") or payload.get("version_id") or "").strip()
+    if not base_version_id:
+        return []
+
+    group_id = str(payload.get("group_id") or "").strip() or base_version_id
+    group_name = (
+        str(payload.get("version_group_name") or "").strip()
+        or str(payload.get("group_name") or "").strip()
+        or str(payload.get("version_note") or "").strip()
+        or group_id
+    )
+    selected_models = [str(model_name) for model_name in payload.get("selected_models", []) if str(model_name).strip()]
+    model_versions = payload.get("model_versions") if isinstance(payload.get("model_versions"), dict) else {}
+
+    if str(payload.get("model_name") or "").strip():
+        model_name = str(payload.get("model_name")).strip()
+        artifact_root = str(payload.get("artifact_root") or "").strip() or str((version_dir / "artifacts" / model_name).resolve())
+        return [
+            {
+                **payload,
+                "version_id": str(payload.get("version_id") or f"{base_version_id}{MODEL_VERSION_SEPARATOR}{model_name}"),
+                "base_version_id": base_version_id,
+                "group_id": group_id,
+                "group_name": group_name,
+                "version_group_name": group_name,
+                "model_name": model_name,
+                "selected_models": selected_models or [model_name],
+                "version_dir": str(version_dir),
+                "artifact_root": artifact_root,
+                "is_virtual_child": True,
+            }
+        ]
+
+    model_names = selected_models or [str(model_name) for model_name in model_versions.keys() if str(model_name).strip()]
+    if not model_names:
+        return [
+            {
+                **payload,
+                "version_id": base_version_id,
+                "base_version_id": base_version_id,
+                "group_id": group_id,
+                "group_name": group_name,
+                "version_group_name": group_name,
+                "model_name": None,
+                "selected_models": [],
+                "version_dir": str(version_dir),
+                "artifact_root": "",
+                "is_virtual_child": False,
+            }
+        ]
+    versions: list[dict[str, object]] = []
+    for model_name in model_names:
+        entry = model_versions.get(model_name) if isinstance(model_versions.get(model_name), dict) else {}
+        versions.append(
+            {
+                **payload,
+                "version_id": str(entry.get("version_id") or f"{base_version_id}{MODEL_VERSION_SEPARATOR}{model_name}"),
+                "base_version_id": base_version_id,
+                "group_id": group_id,
+                "group_name": group_name,
+                "version_group_name": group_name,
+                "model_name": model_name,
+                "selected_models": selected_models or [model_name],
+                "version_dir": str(version_dir),
+                "artifact_root": str(entry.get("artifact_root") or "").strip() or str((version_dir / "artifacts" / model_name).resolve()),
+                "is_virtual_child": True,
+            }
+        )
+    return versions
 
 
 def _run_training_background(run_id: str, request: TrainingRunRequest) -> None:
@@ -522,8 +617,7 @@ def _list_versions() -> list[dict[str, object]]:
             payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         except Exception:
             continue
-        payload["version_dir"] = str(manifest_path.parent)
-        versions.append(payload)
+        versions.extend(_expand_manifest_versions(payload, manifest_path.parent))
     return versions
 
 

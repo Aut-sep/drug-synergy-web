@@ -68,6 +68,9 @@ export interface RunTask {
   remote_run_id: string
   dataset_id?: number | null
   model_version_id?: string | null
+  model_version_ids?: Record<string, string>
+  version_group_id?: string | null
+  version_group_name?: string | null
   selected_models: string[]
   output_path?: string | null
   output_path_host?: string | null
@@ -103,11 +106,18 @@ export interface RunTaskDetail extends RunTask {
 
 export interface ModelVersion {
   version_id: string
+  base_version_id?: string
+  group_id?: string
+  group_name?: string
+  version_group_name?: string
+  model_name?: string
   created_at?: string
   selected_models?: string[]
   profile?: string
   version_note?: string
   version_dir?: string
+  artifact_root?: string
+  is_virtual_child?: boolean
   source_kind?: string
   availability_note?: string
 }
@@ -116,6 +126,7 @@ export interface InferenceRunCreatePayload {
   dataset_id: number
   selected_models: string[]
   model_version_id?: string
+  model_version_ids?: Record<string, string>
 }
 
 export interface TrainingRunCreatePayload {
@@ -125,5 +136,6 @@ export interface TrainingRunCreatePayload {
   device: string
   epochs?: number
   label_threshold: number
+  version_group_name: string
   version_note: string
 }

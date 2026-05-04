@@ -45,6 +45,9 @@ class RunTaskRead(BaseModel):
     remote_run_id: str
     dataset_id: int | None
     model_version_id: str | None
+    model_version_ids: dict[str, str] = Field(default_factory=dict)
+    version_group_id: str | None = None
+    version_group_name: str | None = None
     selected_models: list[str]
     output_path: str | None
     output_path_host: str | None = None
@@ -82,6 +85,7 @@ class InferenceRunCreate(BaseModel):
     dataset_id: int
     selected_models: list[str] = Field(min_length=1)
     model_version_id: str = "__default__"
+    model_version_ids: dict[str, str] = Field(default_factory=dict)
 
 
 class TrainingRunCreate(BaseModel):
@@ -91,15 +95,23 @@ class TrainingRunCreate(BaseModel):
     device: str = "auto"
     epochs: int | None = None
     label_threshold: float = 10.0
+    version_group_name: str = ""
     version_note: str = ""
 
 
 class ModelVersionRead(BaseModel):
     version_id: str
+    base_version_id: str | None = None
+    group_id: str | None = None
+    group_name: str | None = None
+    version_group_name: str | None = None
+    model_name: str | None = None
     created_at: str | None = None
     selected_models: list[str] | None = None
     profile: str | None = None
     version_note: str | None = None
     version_dir: str | None = None
+    artifact_root: str | None = None
+    is_virtual_child: bool = False
     source_kind: str | None = None
     availability_note: str | None = None

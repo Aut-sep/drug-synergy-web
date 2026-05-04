@@ -3,7 +3,7 @@
     <div class="page-title">
       <div>
         <h2>推理工作台</h2>
-        <p>选择可用数据集、模型版本和参与模型，提交统一任务链路后，可在同一页面里查看结果工作台、完整详情、运行日志和下载入口。</p>
+        <p>先选训练组/实验名，再检查四个模型的版本映射；系统会自动预填，你也可以单独替换某一个模型版本。</p>
       </div>
     </div>
 
@@ -37,25 +37,49 @@
                 />
               </el-select>
             </el-form-item>
-            <el-form-item label="模型版本">
-              <el-select v-model="form.modelVersionId" style="width: 100%">
+
+            <el-form-item label="训练组/实验名">
+              <el-select v-model="form.versionGroupId" style="width: 100%">
                 <el-option label="系统默认模型版本" value="__default__" />
                 <el-option
-                  v-for="version in trainingStore.versions"
-                  :key="version.version_id"
-                  :label="version.version_id"
-                  :value="version.version_id"
+                  v-for="group in versionGroups"
+                  :key="group.groupId"
+                  :label="formatGroupLabel(group)"
+                  :value="group.groupId"
                 />
               </el-select>
-              <div v-if="trainingStore.versions.length === 0" class="empty-hint">
-                当前没有可选版本资产时，系统会使用默认模型版本执行推理。
+              <div v-if="versionGroups.length === 0" class="empty-hint">
+                当前没有可选训练组时，系统会使用默认模型版本执行推理。
               </div>
             </el-form-item>
+
             <el-form-item label="参与模型">
               <el-checkbox-group v-model="form.selectedModels">
                 <el-checkbox v-for="model in allModels" :key="model" :label="model" :value="model" />
               </el-checkbox-group>
             </el-form-item>
+
+            <el-form-item label="单模型版本覆写">
+              <div v-if="form.selectedModels.length > 0" class="model-version-grid">
+                <div v-for="model in form.selectedModels" :key="model" class="model-version-card">
+                  <div class="model-version-card__header">
+                    <strong>{{ model }}</strong>
+                    <span>{{ currentVersionHint(model) }}</span>
+                  </div>
+                  <el-select v-model="form.modelVersionIds[model]" style="width: 100%">
+                    <el-option label="跟随系统默认" value="__default__" />
+                    <el-option
+                      v-for="version in versionsForModel(model)"
+                      :key="version.version_id"
+                      :label="formatVersionLabel(version)"
+                      :value="version.version_id"
+                    />
+                  </el-select>
+                </div>
+              </div>
+              <div v-else class="empty-hint">请至少选择一个模型。</div>
+            </el-form-item>
+
             <el-button
               type="primary"
               :loading="inferenceStore.creating"
@@ -83,7 +107,11 @@
                 <StatusTag :state="row.local_status" />
               </template>
             </el-table-column>
-            <el-table-column prop="model_version_id" label="模型版本" min-width="160" />
+            <el-table-column label="训练组/实验名" min-width="180">
+              <template #default="{ row }">
+                {{ row.version_group_name || row.version_group_id || '系统默认' }}
+              </template>
+            </el-table-column>
             <el-table-column label="结果" width="120">
               <template #default="{ row }">
                 <el-tag :type="row.output_available ? 'success' : 'info'" effect="plain">
@@ -116,23 +144,24 @@
       </el-col>
     </el-row>
 
-    <InferenceResultWorkbench :detail="selectedDetail" />
+    <div v-loading="detailLoading" class="inference-detail-area">
+      <InferenceResultWorkbench :detail="selectedDetail" />
 
-    <TaskDetailCard
-      :detail="selectedDetail"
-      title="推理任务详情"
-      empty-description="选择一条推理任务后，可在这里查看结果预览、完整日志和下载入口。"
-    />
+      <TaskDetailCard
+        :detail="selectedDetail"
+        title="推理任务详情"
+        empty-description="选择一条推理任务后，可在这里查看摘要、日志和下载入口。"
+      />
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
-import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 import { toErrorMessage } from '../api/http'
-import type { RunTaskDetail } from '../api/types'
-import InferenceResultWorkbench from '../components/InferenceResultWorkbench.vue'
+import type { ModelVersion, RunTaskDetail } from '../api/types'
 import TaskDetailCard from '../components/TaskDetailCard.vue'
 import StatusTag from '../components/StatusTag.vue'
 import { AVAILABLE_MODELS } from '../constants/models'
@@ -140,20 +169,73 @@ import { useDatasetStore } from '../stores/datasets'
 import { useInferenceStore } from '../stores/inference'
 import { useTrainingStore } from '../stores/training'
 
+type VersionGroup = {
+  groupId: string
+  groupName: string
+  createdAt: string
+  versionsByModel: Record<string, ModelVersion[]>
+  selectedModels: string[]
+}
+
 const datasetStore = useDatasetStore()
 const inferenceStore = useInferenceStore()
 const trainingStore = useTrainingStore()
 const allModels = [...AVAILABLE_MODELS]
+const InferenceResultWorkbench = defineAsyncComponent(() => import('../components/InferenceResultWorkbench.vue'))
 const selectedRunId = ref<number | null>(null)
 const selectedDetail = ref<RunTaskDetail | null>(null)
+const detailLoading = ref(false)
 
 const form = reactive({
   datasetId: undefined as number | undefined,
-  modelVersionId: '__default__',
+  versionGroupId: '__default__',
   selectedModels: [...allModels],
+  modelVersionIds: {} as Record<string, string>,
 })
 
 let timer: number | undefined
+
+const versionGroups = computed<VersionGroup[]>(() => {
+  const groups = new Map<string, VersionGroup>()
+  for (const version of trainingStore.versions) {
+    if (!version.model_name) {
+      continue
+    }
+    const groupId = version.group_id || version.base_version_id || version.version_id
+    if (!groupId) {
+      continue
+    }
+    const existing = groups.get(groupId) || {
+      groupId,
+      groupName: version.group_name || groupId,
+      createdAt: version.created_at || '',
+      versionsByModel: {},
+      selectedModels: [],
+    }
+    existing.groupName = existing.groupName || version.group_name || groupId
+    existing.createdAt = existing.createdAt || version.created_at || ''
+    const modelName = version.model_name
+    const currentVersions = existing.versionsByModel[modelName] || []
+    currentVersions.push(version)
+    currentVersions.sort((left, right) => (right.created_at || '').localeCompare(left.created_at || ''))
+    existing.versionsByModel[modelName] = currentVersions
+    if (!existing.selectedModels.includes(modelName)) {
+      existing.selectedModels.push(modelName)
+    }
+    groups.set(groupId, existing)
+  }
+  return Array.from(groups.values()).sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+})
+
+const versionsById = computed(() => {
+  const index = new Map<string, ModelVersion>()
+  for (const version of trainingStore.versions) {
+    index.set(version.version_id, version)
+  }
+  return index
+})
+
+const selectedVersionGroup = computed(() => versionGroups.value.find((group) => group.groupId === form.versionGroupId) || null)
 
 function syncDatasetSelection() {
   const datasetIds = new Set(datasetStore.inferenceReadyItems.map((dataset) => dataset.id))
@@ -161,6 +243,81 @@ function syncDatasetSelection() {
     form.datasetId = datasetStore.inferenceReadyItems[0]?.id
   }
 }
+
+function formatGroupLabel(group: VersionGroup) {
+  return group.createdAt ? `${group.groupName} · ${group.createdAt}` : group.groupName
+}
+
+function formatVersionLabel(version: ModelVersion) {
+  const prefix = version.group_name || version.group_id || version.base_version_id || version.version_id
+  return version.created_at ? `${prefix} · ${version.created_at}` : prefix
+}
+
+function versionsForModel(modelName: string) {
+  return trainingStore.versions.filter((version) => version.model_name === modelName)
+}
+
+function currentVersionHint(modelName: string) {
+  const versionId = form.modelVersionIds[modelName]
+  if (!versionId || versionId === '__default__') {
+    return '系统默认'
+  }
+  const version = versionsById.value.get(versionId)
+  if (!version) {
+    return versionId
+  }
+  return version.group_name || version.group_id || version.base_version_id || version.version_id
+}
+
+function applyGroupDefaults(forceReset: boolean) {
+  const selectedSet = new Set<string>(form.selectedModels)
+  for (const modelName of Object.keys(form.modelVersionIds)) {
+    if (!selectedSet.has(modelName)) {
+      delete form.modelVersionIds[modelName]
+    }
+  }
+
+  if (!selectedVersionGroup.value) {
+    for (const modelName of form.selectedModels) {
+      if (!form.modelVersionIds[modelName]) {
+        form.modelVersionIds[modelName] = '__default__'
+      }
+    }
+    return
+  }
+
+  for (const modelName of form.selectedModels) {
+    const preferredVersion = selectedVersionGroup.value.versionsByModel[modelName]?.[0]?.version_id || '__default__'
+    if (forceReset || !form.modelVersionIds[modelName] || form.modelVersionIds[modelName] === '__default__') {
+      form.modelVersionIds[modelName] = preferredVersion
+    }
+  }
+}
+
+watch(
+  versionGroups,
+  (groups) => {
+    if (form.versionGroupId !== '__default__' && !groups.some((group) => group.groupId === form.versionGroupId)) {
+      form.versionGroupId = '__default__'
+    }
+    applyGroupDefaults(false)
+  },
+  { immediate: true },
+)
+
+watch(
+  () => form.versionGroupId,
+  () => {
+    applyGroupDefaults(true)
+  },
+)
+
+watch(
+  () => [...form.selectedModels],
+  () => {
+    applyGroupDefaults(false)
+  },
+)
 
 async function submitRun() {
   if (!form.datasetId) {
@@ -171,11 +328,17 @@ async function submitRun() {
     ElMessage.warning('请至少选择一个模型。')
     return
   }
+  const modelVersionIds = Object.fromEntries(
+    form.selectedModels
+      .map((modelName) => [modelName, form.modelVersionIds[modelName] || '__default__'] as const)
+      .filter(([, versionId]) => versionId && versionId !== '__default__'),
+  )
   try {
     const created = await inferenceStore.createRun({
       dataset_id: form.datasetId,
       selected_models: form.selectedModels,
-      model_version_id: form.modelVersionId,
+      model_version_id: form.versionGroupId,
+      model_version_ids: modelVersionIds,
     })
     await viewDetail(created.id, true)
     ElMessage.success('推理任务已提交。')
@@ -185,11 +348,26 @@ async function submitRun() {
 }
 
 async function viewDetail(runId: number, force = false) {
+  const isSwitchingRun = selectedRunId.value !== runId
   selectedRunId.value = runId
+  detailLoading.value = true
+  if (isSwitchingRun) {
+    selectedDetail.value = null
+  }
   try {
-    selectedDetail.value = await inferenceStore.loadDetail(runId, force)
+    const detail = await inferenceStore.loadDetail(runId, force)
+    if (selectedRunId.value === runId) {
+      selectedDetail.value = detail
+    }
   } catch (error) {
+    if (isSwitchingRun) {
+      selectedDetail.value = null
+    }
     ElMessage.error(toErrorMessage(error, '推理任务详情加载失败。'))
+  } finally {
+    if (selectedRunId.value === runId) {
+      detailLoading.value = false
+    }
   }
 }
 
@@ -221,6 +399,7 @@ function openEndpoint(endpoint: string) {
 onMounted(async () => {
   await Promise.all([datasetStore.loadDatasets(), inferenceStore.loadRuns(), trainingStore.loadVersions()])
   syncDatasetSelection()
+  applyGroupDefaults(true)
   if (inferenceStore.runs[0]) {
     await viewDetail(inferenceStore.runs[0].id)
   }
@@ -237,3 +416,35 @@ onBeforeUnmount(() => {
   }
 })
 </script>
+
+<style scoped>
+.inference-detail-area {
+  display: grid;
+  gap: 16px;
+}
+
+.model-version-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.model-version-card {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(106, 125, 151, 0.18);
+  background: rgba(246, 249, 252, 0.88);
+}
+
+.model-version-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #5f6f89;
+}
+
+.model-version-card__header strong {
+  color: #1f2937;
+}
+</style>

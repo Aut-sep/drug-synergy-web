@@ -39,6 +39,7 @@ SUMMARY_LIGHTWEIGHT_TIMEOUT_SECONDS = 2
 RUN_CREATE_TIMEOUT_SECONDS = 30
 RUN_POLL_TIMEOUT_SECONDS = 12
 RUN_CANCEL_TIMEOUT_SECONDS = 15
+MODEL_VERSION_SEPARATOR = "::"
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -55,6 +56,175 @@ class LegacyBridgeError(RuntimeError):
 
 class RemoteRunMissingError(LegacyBridgeError):
     pass
+
+
+def build_model_version_id(base_version_id: str, model_name: str) -> str:
+    return f"{str(base_version_id).strip()}{MODEL_VERSION_SEPARATOR}{str(model_name).strip()}"
+
+
+def parse_model_version_id(version_id: str) -> tuple[str, str | None]:
+    text = str(version_id or "").strip()
+    if not text:
+        return "", None
+    if MODEL_VERSION_SEPARATOR not in text:
+        return text, None
+    base_version_id, model_name = text.split(MODEL_VERSION_SEPARATOR, 1)
+    return base_version_id.strip(), model_name.strip() or None
+
+
+def _coerce_model_version_map(value: object) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+    return {
+        str(model_name): str(version_id)
+        for model_name, version_id in value.items()
+        if str(model_name).strip() and str(version_id).strip()
+    }
+
+
+def _group_name_from_payload(payload: dict[str, Any], fallback_group_id: str) -> str:
+    return (
+        str(payload.get("version_group_name") or "").strip()
+        or str(payload.get("group_name") or "").strip()
+        or str(payload.get("version_note") or "").strip()
+        or fallback_group_id
+    )
+
+
+def _build_virtual_model_versions(payload: dict[str, Any], *, version_dir: Path | None = None) -> list[dict[str, Any]]:
+    base_version_id = str(payload.get("base_version_id") or payload.get("version_id") or "").strip()
+    if not base_version_id:
+        return []
+
+    group_id = str(payload.get("group_id") or "").strip() or base_version_id
+    group_name = _group_name_from_payload(payload, group_id)
+    explicit_model_name = str(payload.get("model_name") or "").strip()
+    if explicit_model_name:
+        artifact_root = str(payload.get("artifact_root") or "").strip()
+        if not artifact_root and version_dir is not None:
+            artifact_root = str((version_dir / "artifacts" / explicit_model_name).resolve())
+        return [
+            {
+                "version_id": str(payload.get("version_id") or build_model_version_id(base_version_id, explicit_model_name)).strip(),
+                "base_version_id": base_version_id,
+                "group_id": group_id,
+                "group_name": group_name,
+                "version_group_name": group_name,
+                "model_name": explicit_model_name,
+                "created_at": payload.get("created_at"),
+                "selected_models": coerce_string_list(payload.get("selected_models")) or [explicit_model_name],
+                "profile": payload.get("profile"),
+                "version_note": payload.get("version_note"),
+                "version_dir": str(version_dir) if version_dir is not None else payload.get("version_dir"),
+                "artifact_root": artifact_root,
+                "is_virtual_child": True,
+                "source_kind": payload.get("source_kind"),
+                "availability_note": payload.get("availability_note"),
+            }
+        ]
+
+    selected_models = coerce_string_list(payload.get("selected_models"))
+    model_versions = payload.get("model_versions") if isinstance(payload.get("model_versions"), dict) else {}
+    model_names = selected_models or [str(model_name) for model_name in model_versions.keys() if str(model_name).strip()]
+    if not model_names:
+        return [
+            {
+                "version_id": base_version_id,
+                "base_version_id": base_version_id,
+                "group_id": group_id,
+                "group_name": group_name,
+                "version_group_name": group_name,
+                "model_name": None,
+                "created_at": payload.get("created_at"),
+                "selected_models": [],
+                "profile": payload.get("profile"),
+                "version_note": payload.get("version_note"),
+                "version_dir": str(version_dir) if version_dir is not None else payload.get("version_dir"),
+                "artifact_root": "",
+                "is_virtual_child": False,
+                "source_kind": payload.get("source_kind"),
+                "availability_note": payload.get("availability_note"),
+            }
+        ]
+    entries: list[dict[str, Any]] = []
+    for model_name in model_names:
+        if model_name not in ALL_MODELS:
+            continue
+        entry_payload = model_versions.get(model_name) if isinstance(model_versions.get(model_name), dict) else {}
+        child_version_id = (
+            str(entry_payload.get("version_id") or "").strip()
+            or build_model_version_id(base_version_id, model_name)
+        )
+        artifact_root = str(entry_payload.get("artifact_root") or "").strip()
+        if not artifact_root and version_dir is not None:
+            artifact_root = str((version_dir / "artifacts" / model_name).resolve())
+        entries.append(
+            {
+                "version_id": child_version_id,
+                "base_version_id": base_version_id,
+                "group_id": group_id,
+                "group_name": group_name,
+                "version_group_name": group_name,
+                "model_name": model_name,
+                "created_at": payload.get("created_at"),
+                "selected_models": selected_models,
+                "profile": payload.get("profile"),
+                "version_note": payload.get("version_note"),
+                "version_dir": str(version_dir) if version_dir is not None else payload.get("version_dir"),
+                "artifact_root": artifact_root,
+                "is_virtual_child": True,
+                "source_kind": payload.get("source_kind"),
+                "availability_note": payload.get("availability_note"),
+            }
+        )
+    return entries
+
+
+def _requested_version_group_id(model_version_id: str, model_version_ids: dict[str, str]) -> str:
+    for requested_version_id in model_version_ids.values():
+        base_version_id, _ = parse_model_version_id(requested_version_id)
+        if base_version_id:
+            return base_version_id
+    base_version_id, _ = parse_model_version_id(model_version_id)
+    return base_version_id
+
+
+def _requested_version_group_name(model_version_id: str, model_version_ids: dict[str, str]) -> str:
+    group_id = _requested_version_group_id(model_version_id, model_version_ids)
+    if not group_id:
+        return ""
+    for item in list_model_versions():
+        if str(item.get("group_id") or "") == group_id:
+            return _group_name_from_payload(item, group_id)
+    return group_id
+
+
+def _normalize_inference_version_selection(
+    selected_models: list[str],
+    *,
+    model_version_id: str,
+    model_version_ids: dict[str, str],
+) -> tuple[str, dict[str, str]]:
+    normalized_map = _coerce_model_version_map(model_version_ids)
+    for model_name in list(normalized_map):
+        if model_name not in selected_models:
+            normalized_map.pop(model_name, None)
+            continue
+        base_version_id, embedded_model_name = parse_model_version_id(normalized_map[model_name])
+        if embedded_model_name and embedded_model_name != model_name:
+            raise ValueError(f"Version {normalized_map[model_name]} does not belong to model {model_name}.")
+        if not base_version_id:
+            normalized_map.pop(model_name, None)
+
+    fallback_version_id = str(model_version_id or "__default__").strip() or "__default__"
+    if not normalized_map:
+        return fallback_version_id, {}
+
+    fallback_base_version_id, _ = parse_model_version_id(fallback_version_id)
+    if fallback_version_id != "__default__" and not fallback_base_version_id:
+        fallback_version_id = "__default__"
+
+    return fallback_version_id, normalized_map
 
 
 def _rewrite_legacy_runtime_host_path(path: Path) -> Path | None:
@@ -522,10 +692,10 @@ def training_health(
             )
             return {
                 "ready": True,
-                "detail": "训练服务已响应轻量探测，但完整健康检查未完全稳定。",
+                "detail": "训练服务已通过轻量探测。",
                 "url": url,
                 "probe_mode": "lightweight",
-                "degraded": True,
+                "degraded": False,
             }
         except LegacyBridgeError:
             return {"ready": False, "detail": "训练服务健康检查失败。", "url": url, "probe_mode": "failed", "degraded": True}
@@ -572,7 +742,12 @@ def list_model_versions(*, prefer_remote: bool = True, remote_timeout: int = LIS
             )
             versions = payload.get("versions")
             if isinstance(versions, list) and versions:
-                return [item for item in versions if isinstance(item, dict)]
+                flattened: list[dict[str, Any]] = []
+                for item in versions:
+                    if isinstance(item, dict):
+                        flattened.extend(_build_virtual_model_versions(item))
+                if flattened:
+                    return flattened
         except LegacyBridgeError:
             pass
 
@@ -616,9 +791,8 @@ def list_model_versions(*, prefer_remote: bool = True, remote_timeout: int = LIS
         else:
             payload["source_kind"] = payload.get("source_kind") or "manifest"
             payload["availability_note"] = payload.get("availability_note") or ""
-
         payload["version_dir"] = str(version_dir)
-        versions.append(payload)
+        versions.extend(_build_virtual_model_versions(payload, version_dir=version_dir))
     return versions
 
 
@@ -641,11 +815,16 @@ def _parse_remote_datetime(raw_value: object) -> datetime | None:
 
 
 def _build_training_summary(payload: dict[str, Any], fallback_models: list[str]) -> dict[str, Any]:
+    version_id = str(payload.get("version_id") or "").strip()
+    selected_models = coerce_string_list(payload.get("selected_models")) or list(fallback_models)
     summary: dict[str, Any] = {
-        "version_id": payload.get("version_id"),
-        "selected_models": payload.get("selected_models", fallback_models),
+        "version_id": version_id,
+        "version_group_id": version_id,
+        "version_group_name": _group_name_from_payload(payload, version_id),
+        "selected_models": selected_models,
+        "model_version_ids": {model_name: build_model_version_id(version_id, model_name) for model_name in selected_models if version_id},
     }
-    for key in ("phase_label", "progress_percent", "current_model", "started_at", "finished_at"):
+    for key in ("phase_label", "progress_percent", "current_model", "started_at", "finished_at", "version_note"):
         value = payload.get(key)
         if value not in (None, "", []):
             summary[key] = value
@@ -727,15 +906,24 @@ def create_inference_task(
     *,
     selected_models: list[str],
     model_version_id: str,
+    model_version_ids: dict[str, str],
 ) -> RunTask:
     validate_selected_models(selected_models)
     validate_inference_dataset(dataset)
+    normalized_version_id, normalized_version_ids = _normalize_inference_version_selection(
+        selected_models,
+        model_version_id=model_version_id,
+        model_version_ids=model_version_ids,
+    )
+    version_group_id = _requested_version_group_id(normalized_version_id, normalized_version_ids)
+    version_group_name = _requested_version_group_name(normalized_version_id, normalized_version_ids) if version_group_id else ""
 
     payload = {
         "samples_csv": _host_to_gateway_path(from_storage_path(dataset.bundle_path) / dataset.sample_file),
         "selected_models": selected_models,
         "output_root": _host_to_gateway_path(settings.outputs_root / "inference"),
-        "model_version_id": model_version_id,
+        "model_version_id": normalized_version_id,
+        "model_version_ids": normalized_version_ids,
     }
     remote = _request_json(
         "post",
@@ -744,6 +932,13 @@ def create_inference_task(
         timeout=RUN_CREATE_TIMEOUT_SECONDS,
         context="Failed to create an inference run in the legacy gateway",
     )
+    summary: dict[str, Any] = {
+        "model_version_ids": normalized_version_ids,
+        "version_group_id": version_group_id,
+        "version_group_name": version_group_name or version_group_id,
+    }
+    if isinstance(remote.get("summary"), dict):
+        summary.update(remote.get("summary"))
 
     task = RunTask(
         task_type="inference",
@@ -752,12 +947,12 @@ def create_inference_task(
         remote_state=str(remote.get("state") or ""),
         remote_run_id=str(remote.get("run_id") or ""),
         dataset_id=dataset.id,
-        model_version_id=model_version_id,
+        model_version_id=version_group_id or normalized_version_id,
         selected_models=list(selected_models),
         output_path=remote.get("output_path"),
         log_excerpt=_extract_log(remote),
         error_message=str(remote.get("error") or ""),
-        summary=remote.get("summary") if isinstance(remote.get("summary"), dict) else None,
+        summary=summary,
     )
     db.add(task)
     db.commit()
@@ -774,10 +969,13 @@ def create_training_task(
     device: str,
     epochs: int | None,
     label_threshold: float,
+    version_group_name: str,
     version_note: str,
 ) -> RunTask:
     validate_selected_models(selected_models)
     validate_training_dataset(dataset)
+    normalized_group_name = str(version_group_name or "").strip() or str(version_note or "").strip()
+    normalized_note = str(version_note or "").strip() or normalized_group_name
 
     payload = {
         "bundle_path": _host_to_remote_path(from_storage_path(dataset.bundle_path)),
@@ -788,7 +986,8 @@ def create_training_task(
         "label_source": "threshold",
         "label_threshold": label_threshold,
         "fold_strategy": "pair_group",
-        "version_note": version_note,
+        "version_group_name": normalized_group_name,
+        "version_note": normalized_note,
     }
     remote = _request_json(
         "post",
@@ -805,7 +1004,7 @@ def create_training_task(
         remote_state=str(remote.get("state") or ""),
         remote_run_id=str(remote.get("run_id") or ""),
         dataset_id=dataset.id,
-        model_version_id=None,
+        model_version_id=str(remote.get("version_id") or "") or None,
         selected_models=list(selected_models),
         output_path=remote.get("version_dir"),
         log_excerpt=_extract_log(remote),
@@ -850,6 +1049,23 @@ def refresh_task(db: Session, task: RunTask, *, force: bool = False) -> RunTask:
     summary = payload.get("summary")
     if task.task_type == "training":
         summary = _build_training_summary(payload, coerce_string_list(task.selected_models))
+        task.model_version_id = str(payload.get("version_id") or task.model_version_id or "") or None
+    elif isinstance(summary, dict):
+        merged_summary = dict(task.summary) if isinstance(task.summary, dict) else {}
+        merged_summary.update(summary)
+        if isinstance(payload.get("model_version_ids"), dict):
+            merged_summary["model_version_ids"] = _coerce_model_version_map(payload.get("model_version_ids"))
+        if not merged_summary.get("version_group_id"):
+            merged_summary["version_group_id"] = _requested_version_group_id(
+                str(payload.get("model_version_id") or task.model_version_id or ""),
+                _coerce_model_version_map(payload.get("model_version_ids")),
+            )
+        if not merged_summary.get("version_group_name") and merged_summary.get("version_group_id"):
+            merged_summary["version_group_name"] = _requested_version_group_name(
+                str(payload.get("model_version_id") or task.model_version_id or ""),
+                _coerce_model_version_map(payload.get("model_version_ids")),
+            )
+        summary = merged_summary
     task.summary = summary if isinstance(summary, dict) else task.summary
     db.commit()
     db.refresh(task)

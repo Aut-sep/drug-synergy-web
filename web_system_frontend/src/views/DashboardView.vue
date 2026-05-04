@@ -4,9 +4,7 @@
       <div class="dashboard-hero__content">
         <div class="dashboard-hero__eyebrow">System Overview</div>
         <h2>系统总览</h2>
-        <p>
-          这里集中展示系统指标、组件状态、资源占用、版本沉淀和答辩讲解线索，作为首页入口可以快速建立“系统已交付、结构清晰、状态可追踪”的印象。
-        </p>
+        <p>集中查看服务状态、资源使用、最近版本和任务规模，快速确认当前系统是否适合继续推理或训练。</p>
 
         <div class="dashboard-hero__status-row">
           <el-tag :type="overallHealth.type" effect="dark">{{ overallHealth.label }}</el-tag>
@@ -17,17 +15,17 @@
           <el-button :icon="Refresh" :loading="appStore.loading" type="primary" @click="reload">
             刷新总览
           </el-button>
-          <span class="dashboard-hero__sync-note">摘要和版本列表会同步刷新，适合现场演示时快速更新页面。</span>
+          <span class="dashboard-hero__sync-note">刷新后会同步更新系统摘要和版本列表。</span>
         </div>
       </div>
 
       <div class="dashboard-hero__aside">
         <div class="dashboard-hero__panel">
-          <div class="dashboard-hero__panel-title">讲解主线</div>
+          <div class="dashboard-hero__panel-title">当前重点</div>
           <ul class="dashboard-hero__story-list">
-            <li>先看核心指标，再看运行状态。</li>
-            <li>推理和训练共用一套任务链路，便于统一说明。</li>
-            <li>版本中心和结果工作台直接服务成果展示。</li>
+            <li>先确认推理网关与训练服务是否就绪。</li>
+            <li>任务、日志、产物和版本中心共用一套任务链路。</li>
+            <li>训练产物会按训练组拆分成多个模型版本。</li>
           </ul>
         </div>
 
@@ -56,31 +54,31 @@
         tone="blue"
         label="数据集总数"
         :value="summary?.dataset_count ?? 0"
-        hint="已登记的数据资产数量，反映系统输入规模与可用性。"
+        hint="已登记的数据资产数量。"
       />
       <MetricCard
         tone="teal"
         label="推理任务数"
         :value="summary?.inference_run_count ?? 0"
-        hint="累计提交的推理任务，体现推理链路的使用深度。"
+        hint="累计提交的推理任务。"
       />
       <MetricCard
         tone="amber"
         label="训练任务数"
         :value="summary?.training_run_count ?? 0"
-        hint="训练链路的任务记录，展示模型构建与迭代过程。"
+        hint="累计提交的训练任务。"
       />
       <MetricCard
         tone="violet"
         label="运行中任务"
         :value="summary?.running_run_count ?? 0"
-        hint="当前需要关注的任务，适合答辩时说明运行状态。"
+        hint="当前仍在推进的任务。"
       />
       <MetricCard
         tone="slate"
         label="可见版本数"
         :value="summary?.latest_model_version_count ?? 0"
-        hint="可直接展示的模型版本资产，支撑成果沉淀说明。"
+        hint="当前可在版本中心查看的模型版本。"
       />
     </div>
 
@@ -91,7 +89,7 @@
             <div class="dashboard-card__header">
               <div>
                 <strong>服务状态</strong>
-                <div class="page-caption">推理网关与训练服务的健康检查结果，适合先说明系统边界与稳定性。</div>
+                <div class="page-caption">推理网关和训练服务的最新健康检查结果。</div>
               </div>
               <el-tag :type="overallHealth.type" effect="plain">{{ overallHealth.label }}</el-tag>
             </div>
@@ -123,8 +121,8 @@
           <template #header>
             <div class="dashboard-card__header">
               <div>
-                <strong>资源信息</strong>
-                <div class="page-caption">当前快照下的资源占用，便于说明系统运行环境和实时负载。</div>
+                <strong>资源快照</strong>
+                <div class="page-caption">当前摘要中的 CPU、内存和磁盘占用。</div>
               </div>
               <span class="page-caption">来源：最近一次采样</span>
             </div>
@@ -149,14 +147,14 @@
             <div class="dashboard-resource-card dashboard-resource-card--wide">
               <span>负载均值</span>
               <strong>{{ formatLoadAverage(summary?.resource_snapshot?.load_average) }}</strong>
-              <small>用于判断整体忙闲状态</small>
+              <small>用于观察当前机器负载趋势</small>
             </div>
           </div>
 
           <el-alert
             class="dashboard-resource-note"
-            title="资源信息与系统摘要来自同一快照"
-            description="如果服务状态或任务数量刚刚变化，点击“刷新总览”即可同步更新页面内容。"
+            title="资源数据和系统摘要来自同一份快照"
+            description="如果任务状态刚刚变化，可以刷新总览后再查看。"
             type="info"
             :closable="false"
             show-icon
@@ -172,7 +170,7 @@
             <div class="dashboard-card__header">
               <div>
                 <strong>最近版本</strong>
-                <div class="page-caption">模型版本中心的最近条目，可直接用于说明成果沉淀和历史回溯。</div>
+                <div class="page-caption">按训练组整理的最新模型版本记录。</div>
               </div>
               <el-tag effect="plain">{{ recentVersions.length }} 条</el-tag>
             </div>
@@ -215,35 +213,30 @@
           <template #header>
             <div class="dashboard-card__header">
               <div>
-                <strong>答辩讲解线</strong>
-                <div class="page-caption">建议按“系统边界、推理闭环、训练展示、版本沉淀”四步进行说明。</div>
+                <strong>系统范围</strong>
+                <div class="page-caption">当前界面重点覆盖的能力范围。</div>
               </div>
             </div>
           </template>
 
-          <el-alert
-            class="dashboard-talk-note"
-            title="这部分可以直接作为现场讲述提词"
-            description="它帮助观众快速建立系统印象，也方便你在答辩中把页面讲得更顺。"
-            type="success"
-            :closable="false"
-            show-icon
-          />
-
-          <el-timeline class="dashboard-timeline">
-            <el-timeline-item timestamp="系统边界">
-              前端负责交互与状态呈现，后端负责任务编排与统一接口，职责划分清楚，适合在开场先说明。
-            </el-timeline-item>
-            <el-timeline-item timestamp="推理闭环">
-              从数据选择、任务提交、结果预览到文件下载，形成完整闭环，便于现场展示模型效果。
-            </el-timeline-item>
-            <el-timeline-item timestamp="训练展示">
-              训练任务保留执行状态、日志和版本资产，既能展示过程，也能展示产出。
-            </el-timeline-item>
-            <el-timeline-item timestamp="版本沉淀">
-              版本中心统一承接模型产物与历史记录，支撑成果回溯和后续扩展。
-            </el-timeline-item>
-          </el-timeline>
+          <div class="dashboard-outline-grid">
+            <div class="info-card">
+              <h4>推理链路</h4>
+              <p>选择数据集和版本后提交任务，统一查看结果、日志和下载入口。</p>
+            </div>
+            <div class="info-card">
+              <h4>训练链路</h4>
+              <p>训练任务按训练组登记，并拆分成多个模型版本，便于后续单独替换。</p>
+            </div>
+            <div class="info-card">
+              <h4>版本中心</h4>
+              <p>集中回看训练组、模型版本和产物目录，支持后续推理复用。</p>
+            </div>
+            <div class="info-card">
+              <h4>任务中心</h4>
+              <p>统一查看推理与训练任务的状态、错误信息、日志和产物。</p>
+            </div>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -280,7 +273,7 @@ function serviceLabel(health?: ServiceHealth) {
     return '不可用'
   }
   if (health.degraded) {
-    return '降级可用'
+    return '部分受限'
   }
   return '正常'
 }
@@ -330,21 +323,21 @@ const overallHealth = computed(() => {
   if (services.some((health) => health && !health.ready)) {
     return {
       type: 'danger' as const,
-      label: '待检查',
+      label: '未就绪',
     }
   }
 
   if (services.some((health) => health?.degraded)) {
     return {
       type: 'warning' as const,
-      label: '部分降级',
+      label: '部分受限',
     }
   }
 
   if (hasReadyService) {
     return {
       type: 'success' as const,
-      label: '运行正常',
+      label: '正常',
     }
   }
 
@@ -358,7 +351,7 @@ const heroStats = computed(() => [
   {
     label: '数据集',
     value: summary.value?.dataset_count ?? 0,
-    note: '已登记的输入资产',
+    note: '已登记的数据资产',
   },
   {
     label: '运行中任务',
@@ -368,7 +361,7 @@ const heroStats = computed(() => [
   {
     label: '可见版本',
     value: summary.value?.latest_model_version_count ?? 0,
-    note: '可直接展示的模型成果',
+    note: '可直接用于选择的版本',
   },
 ])
 
@@ -377,7 +370,6 @@ const serviceCards = computed(() => [
     key: 'gateway',
     eyebrow: '推理入口',
     title: '推理网关组件',
-    health: summary.value?.gateway_health,
     tagType: serviceTagType(summary.value?.gateway_health),
     statusLabel: serviceLabel(summary.value?.gateway_health),
     probeMode: summary.value?.gateway_health?.probe_mode,
@@ -389,13 +381,12 @@ const serviceCards = computed(() => [
     key: 'training',
     eyebrow: '训练入口',
     title: '训练服务组件',
-    health: summary.value?.training_health,
     tagType: serviceTagType(summary.value?.training_health),
     statusLabel: serviceLabel(summary.value?.training_health),
     probeMode: summary.value?.training_health?.probe_mode,
     url: summary.value?.training_health?.url || '-',
     detail: summary.value?.training_health?.detail || '等待读取训练服务状态。',
-    footer: summary.value?.training_health?.ready ? '训练链路可用，适合展示任务执行过程。' : '训练服务信息尚未完成刷新。',
+    footer: summary.value?.training_health?.ready ? '训练链路可用，可继续提交训练任务。' : '训练服务信息尚未完成刷新。',
   },
 ])
 
@@ -405,7 +396,7 @@ const memoryUsageText = computed(() => {
   if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
     return '内存快照暂不可用'
   }
-  return `占用率 ${((used / total) * 100).toFixed(1)}%`
+  return `占用率 ${(used / total * 100).toFixed(1)}%`
 })
 
 const diskUsageText = computed(() => {
@@ -414,7 +405,7 @@ const diskUsageText = computed(() => {
   if (!Number.isFinite(used) || !Number.isFinite(total) || total <= 0) {
     return '磁盘快照暂不可用'
   }
-  return `占用率 ${((used / total) * 100).toFixed(1)}%`
+  return `占用率 ${(used / total * 100).toFixed(1)}%`
 })
 
 onMounted(() => {
@@ -474,10 +465,6 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.dashboard-hero__actions {
-  gap: 14px;
-}
-
 .dashboard-hero__sync-note {
   color: #6f7f98;
   font-size: 13px;
@@ -526,34 +513,27 @@ onMounted(() => {
   gap: 4px;
   padding: 14px;
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(239, 245, 251, 0.96));
-  border: 1px solid rgba(99, 125, 160, 0.12);
+  background: white;
+  border: 1px solid rgba(99, 125, 160, 0.1);
 }
 
 .dashboard-hero__stat-label {
   font-size: 12px;
-  color: #6f7f98;
+  color: #6b7d96;
 }
 
 .dashboard-hero__stat strong {
-  display: block;
-  font-size: 24px;
-  line-height: 1.1;
-  color: #102542;
+  font-size: 26px;
+  color: #112240;
 }
 
 .dashboard-hero__stat span:last-child {
-  color: #75839b;
+  color: #6b7d96;
   font-size: 12px;
-  line-height: 1.45;
-}
-
-.dashboard-metrics {
-  margin-top: 2px;
 }
 
 .dashboard-row {
-  align-items: stretch;
+  margin: 0;
 }
 
 .dashboard-section-card {
@@ -562,18 +542,14 @@ onMounted(() => {
 
 .dashboard-card__header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
 }
 
-.dashboard-card__header strong {
-  font-size: 16px;
-  color: #112240;
-}
-
-.dashboard-service-grid {
+.dashboard-service-grid,
+.dashboard-outline-grid {
   display: grid;
   gap: 14px;
 }
@@ -581,52 +557,49 @@ onMounted(() => {
 .dashboard-service-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding: 18px;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(248, 251, 255, 0.94), rgba(241, 246, 252, 0.96));
+  background: rgba(247, 250, 255, 0.88);
   border: 1px solid rgba(99, 125, 160, 0.14);
 }
 
 .dashboard-service-card__header {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
 }
 
 .dashboard-service-card__eyebrow {
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #7a92af;
+  letter-spacing: 0.08em;
+  color: #6b7d96;
 }
 
 .dashboard-service-card h3 {
   margin: 6px 0 0;
-  font-size: 18px;
-  color: #112240;
+  color: #102542;
 }
 
-.dashboard-service-card__url {
-  color: #61748f;
-  font-size: 13px;
-  overflow-wrap: anywhere;
+.status-stack {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.dashboard-service-card__detail {
-  margin: 0;
-  color: #44546a;
-  line-height: 1.7;
-}
-
+.dashboard-service-card__url,
+.dashboard-service-card__detail,
 .dashboard-service-card__footer {
-  padding-top: 8px;
-  border-top: 1px dashed rgba(99, 125, 160, 0.18);
-  color: #6f7f98;
-  font-size: 13px;
+  margin: 0;
+}
+
+.dashboard-service-card__detail,
+.dashboard-service-card__footer {
+  color: #52607a;
+  line-height: 1.7;
 }
 
 .dashboard-resource-grid {
@@ -639,46 +612,36 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 18px;
-  border-radius: 18px;
-  background: rgba(248, 251, 255, 0.94);
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(247, 250, 255, 0.88);
   border: 1px solid rgba(99, 125, 160, 0.14);
 }
 
-.dashboard-resource-card--wide {
-  grid-column: span 2;
-}
-
 .dashboard-resource-card span {
-  display: block;
-  color: #6f7f98;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: #6b7d96;
+  font-size: 13px;
 }
 
 .dashboard-resource-card strong {
-  display: block;
-  font-size: 26px;
   color: #112240;
-  line-height: 1.1;
+  font-size: 22px;
 }
 
 .dashboard-resource-card small {
-  display: block;
-  color: #66768f;
-  font-size: 13px;
-  line-height: 1.5;
+  color: #6b7d96;
 }
 
-.dashboard-resource-note,
-.dashboard-talk-note {
+.dashboard-resource-card--wide {
+  grid-column: 1 / -1;
+}
+
+.dashboard-resource-note {
   margin-top: 14px;
 }
 
 .dashboard-table {
-  margin-top: 4px;
+  width: 100%;
 }
 
 .dashboard-model-tags {
@@ -687,61 +650,16 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
-.dashboard-timeline {
-  margin-top: 14px;
-  padding-left: 2px;
-}
-
-:deep(.dashboard-table .el-table__header-wrapper th) {
-  background: #f2f6fb;
-  color: #102542;
-  font-weight: 600;
-}
-
-:deep(.dashboard-table .el-table__cell) {
-  border-bottom-color: rgba(99, 125, 160, 0.12);
-}
-
-:deep(.dashboard-table .el-table__row:hover > td) {
-  background: rgba(244, 248, 255, 0.95) !important;
-}
-
-:deep(.dashboard-timeline .el-timeline-item__node) {
-  background-color: #4d86ff;
-  border-color: #dbe7ff;
-}
-
-:deep(.dashboard-timeline .el-timeline-item__content) {
-  color: #44546a;
-  line-height: 1.7;
-}
-
-:deep(.dashboard-timeline .el-timeline-item__timestamp) {
-  color: #102542;
-  font-weight: 700;
-}
-
-@media (max-width: 1200px) {
+@media (max-width: 1280px) {
   .dashboard-hero {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 960px) {
-  .dashboard-hero h2 {
-    font-size: 26px;
-  }
-
-  .dashboard-hero__stats {
-    grid-template-columns: 1fr;
-  }
-
+@media (max-width: 768px) {
+  .dashboard-hero__stats,
   .dashboard-resource-grid {
     grid-template-columns: 1fr;
-  }
-
-  .dashboard-resource-card--wide {
-    grid-column: auto;
   }
 }
 </style>
